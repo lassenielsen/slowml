@@ -1,0 +1,1 @@
+default: mnist_extract

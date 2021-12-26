@@ -1,0 +1,62 @@
+# Examples
+
+# Example 1: trans form a vector to add inverses and 1 level combinations
+# X -> X, (X[1:], {x -> 1.0 - x}(X[1:]))*X[1:]
+
+# Example 2: Given two vectors, append them, and add the product
+# of every 9th element from the first with every 10th from the second
+# X,Y -> X, Y, X[1::9], Y[1::10]
+
+# Example 3: Element functions
+# x -> x, {y -> 1.0 - y}(x)
+
+:= "[ \\t\\r\\n\\f][ \\t\\r\\n\\f]*"
+
+VID := "[A-Z][a-zA-Z0-9_]*"
+EID := "[a-z][a-zA-Z0-9_]*"
+FLOAT := "(1+-)[0-9][0-9]*.[0-9][0-9]*"
+INT :=_2 "(1+-)[0-9][0-9]*"
+LPAR := "\\("
+RPAR := "\\)"
+LBRAC := "\\["
+RBRAC := "\\]"
+{ := "\\{"
+} := "\\}"
+-> :=_2 "->"
+- := "-"
++ := "[+]"
+* := "[*]"
+/ := "/"
+COLON := "[:]"
+, := ","
+
+vmap ::= ::map VID ::var -> vexp ::def
+vexp ::= ::sing vexp3 ::sub
+       | ::cons vexp3 ::head , vexp ::tail
+vexp3 ::= ::mul vexp3 ::lhs * vexp2 ::rhs
+        | ::lvl vexp2 ::sub
+vexp2 ::= ::map { emap ::map } LPAR vexp ::arg RPAR
+        | ::lvl vexp1 ::sub
+vexp1 ::= ::idx vexp1 ::vec LBRAC slice ::slice RBRAC
+        | ::lvl vexp0 ::sub
+vexp0 ::= ::var VID ::id
+        | ::par LPAR vexp ::sub RPAR
+
+slice ::= ::sub INT ::from COLON INT ::to
+        | ::head COLON INT ::to
+        | ::tail INT ::from COLON
+        | ::fsub INT ::from COLON INT ::to COLON INT ::step
+        | ::fhead COLON INT ::to COLON INT ::step
+        | ::ftail INT ::from COLON COLON INT ::step
+
+emap ::= ::map EID ::var -> eexp2 ::def
+eexp2 ::= ::add eexp2 ::lhs + eexp1 ::rhs
+        | ::sub eexp2 ::lhs - eexp1 ::rhs
+        | ::lvl eexp1 ::sub
+eexp1 ::= ::mul eexp1 ::lhs * eexp0 ::rhs
+        | ::div eexp1 ::lhs / eexp0 ::rhs
+        | ::lvl eexp0 ::sub
+eexp0 ::= ::var EID ::id
+        | ::val FLOAT
+        | ::par LPAR eexp2 ::sub RPAR
+
