@@ -1097,6 +1097,86 @@ bool TestOVA1() // {{{
   return result;
 } // }}}
 */
+bool TestNetwork0() // {{{
+{ // INIT DATA
+  VectorData<double> t_samples_data(std::vector<double>(),3,0);
+  VectorData<vector<double> > t_samples_result(std::vector<std::vector<double> >(),1,0);
+  //// DATA {{{
+  t_samples_data.AddRow(std::vector<double>{1.0,1.0,0.0});
+  t_samples_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
+  // }}}
+  GuidedVectorData<double,std::vector<double> > t_samples(t_samples_data,t_samples_result.GetValues());
+
+  // DEFINE MODEL
+  Network model(3);
+  vector<size_t> inputs({0,1,2}) ;
+  model.AddNode(0,inputs);
+  model.AddNode(0,inputs);
+  model.AddNode(1,inputs);
+
+  // Set parameters
+  model.GetNode(0,0).second->SetParameter(0,1.0);
+  model.GetNode(0,0).second->SetParameter(1,1.0);
+  model.GetNode(0,0).second->SetParameter(2,-1.0);
+  model.GetNode(0,1).second->SetParameter(0,1.0);
+  model.GetNode(0,1).second->SetParameter(1,-1.0);
+  model.GetNode(0,1).second->SetParameter(2,1.0);
+  model.GetNode(1,0).second->SetParameter(0,-1.0);
+  model.GetNode(1,0).second->SetParameter(1,1.0);
+  model.GetNode(1,0).second->SetParameter(2,1.0);
+
+  // Test Eval
+  vector<double> res=model.Eval(t_samples,0);
+  if (res.size()!=1)
+  { cerr << "Error: size of eval is " << res.size() << "!=1" << endl;
+    return false;
+  }
+  if (abs(res[0]-0.59)>0.02)
+  { cerr << "Error: result of eval is " << res[0] << "0.59" << endl;
+    return false;
+  }
+  
+  // Test Delta
+  vector<double> delta=model.Delta(t_samples,1.0);
+  cout << "Delta: " << endl;
+  for (size_t i=0; i<delta.size(); ++i)
+  { if (i>0)
+      cout << " ";
+    cout << delta[i];
+  }
+  cout << endl;
+  cout << "Parameters before fit: " << endl;
+  for (size_t i=0; i<model.CountParameters(); ++i)
+  { if (i>0)
+      cout << " ";
+    cout << model.GetParameter(i);
+  }
+  cout << endl;
+  cout << "Eval before fit:" << endl << model.Eval(t_samples,0)[0] << endl;
+  double alpha_inv=100.0;
+  double lambda=1.0;
+  for (size_t c=0; c<100; ++c)
+  { model.FitParameters(t_samples,alpha_inv,lambda,100,false); // Fit
+    cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Debug cost
+  }
+  cout << "Parameters after fit: " << endl;
+  for (size_t i=0; i<model.CountParameters(); ++i)
+  { if (i>0)
+      cout << " ";
+    cout << model.GetParameter(i);
+  }
+  cout << endl;
+  cout << "Eval after fit:" << endl << model.Eval(t_samples,0)[0] << endl;
+  //// Test
+  for (size_t instance=0; instance<t_samples.Height(); ++instance)
+  { double eval=model.Eval(t_samples,instance)[0];
+    if (abs(eval-t_samples.GetResult(instance)[0])>0.3)
+    { cerr << "TestLinRM1 failed - Predicted " << eval << "!=" << t_samples.GetResult(instance)[0] << " on test " << instance << endl;
+      return false;
+    }
+  }
+  return true;
+} // }}}
 bool TestNetwork1() // {{{
 { // INIT DATA
   VectorData<double> t_samples_data(std::vector<double>(),3,0);
@@ -1304,6 +1384,24 @@ bool TestNetwork1() // {{{
   t_samples_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
   // }}}
   GuidedVectorData<double,std::vector<double> > t_samples(t_samples_data,t_samples_result.GetValues());
+
+  VectorData<double> t_test_data(std::vector<double>(),3,0);
+  VectorData<vector<double> > t_test_result(std::vector<std::vector<double> >(),1,0);
+  // DATA {{{
+  t_test_data.AddRow(std::vector<double>{1.0,0.61379289447425,0.7280788731317097});
+  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
+  t_test_data.AddRow(std::vector<double>{1.0,0.8540451939411645,0.5705198397627122});
+  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
+  t_test_data.AddRow(std::vector<double>{1.0,0.5210797973193984,0.6312762376881715});
+  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({0.0})}));
+  t_test_data.AddRow(std::vector<double>{1.0,0.5204540476831827,0.7943286012045222});
+  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
+  t_test_data.AddRow(std::vector<double>{1.0,0.4023689373545111,0.7116774802184875});
+  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({0.0})}));
+  t_test_data.AddRow(std::vector<double>{1.0,0.5463510555424817,0.5221388588061123});
+  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({0.0})}));
+  // }}}
+  GuidedVectorData<double,vector<double> > t_test(t_test_data,t_test_result.GetValues());
   // DEFINE MODEL
   Network model(3);
   vector<size_t> inputs({0,1,2}) ;
@@ -1327,10 +1425,13 @@ bool TestNetwork1() // {{{
     cout << model.GetParameter(i);
   }
   cout << endl;
-  cout << "Eval before fit:" << endl << model.Eval(t_samples_data,0)[0] << endl;
-  double alpha_inv=5.0;
-  double lambda=0.0;
-  model.FitParameters(t_samples,alpha_inv,lambda,300000,false); // Fit
+  cout << "Eval before fit:" << endl << model.Eval(t_test_data,0)[0] << endl;
+  double alpha_inv=50000.0;
+  double lambda=1.0;
+  for (size_t c=0; c<100; ++c)
+  { model.FitParameters(t_samples,alpha_inv,lambda,3000,false); // Fit
+    cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Debug cost
+  }
   cout << "Parameters after fit: " << endl;
   for (size_t i=0; i<model.CountParameters(); ++i)
   { if (i>0)
@@ -1338,25 +1439,8 @@ bool TestNetwork1() // {{{
     cout << model.GetParameter(i);
   }
   cout << endl;
-  cout << "Eval after fit:" << endl << model.Eval(t_samples_data,0)[0] << endl;
+  cout << "Eval after fit:" << endl << model.Eval(t_test_data,0)[0] << endl;
   //// Test
-  VectorData<double> t_test_data(std::vector<double>(),3,0);
-  VectorData<vector<double> > t_test_result(std::vector<std::vector<double> >(),1,0);
-  // DATA {{{
-  t_test_data.AddRow(std::vector<double>{1.0,0.61379289447425,0.7280788731317097});
-  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
-  t_test_data.AddRow(std::vector<double>{1.0,0.8540451939411645,0.5705198397627122});
-  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
-  t_test_data.AddRow(std::vector<double>{1.0,0.5210797973193984,0.6312762376881715});
-  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({0.0})}));
-  t_test_data.AddRow(std::vector<double>{1.0,0.5204540476831827,0.7943286012045222});
-  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({1.0})}));
-  t_test_data.AddRow(std::vector<double>{1.0,0.4023689373545111,0.7116774802184875});
-  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({0.0})}));
-  t_test_data.AddRow(std::vector<double>{1.0,0.5463510555424817,0.5221388588061123});
-  t_test_result.AddRow(std::vector<std::vector<double> >({std::vector<double>({0.0})}));
-  // }}}
-  GuidedVectorData<double,vector<double> > t_test(t_test_data,t_test_result.GetValues());
   for (size_t instance=0; instance<t_test.Height(); ++instance)
   { double eval=model.Eval(t_test,instance)[0];
     if (abs(eval-t_test.GetResult(instance)[0])>0.3)
@@ -1381,8 +1465,12 @@ int main()
       cout << "TestLogRM1 succeeded" << endl;
     else
       cout << "TestLogRM1 failed" << endl;
+    if (TestNetwork0())
+      cout << "TestNetwork0 succeeded" << endl;
+    else
+      cout << "TestNetwork0 failed" << endl;
     if (TestNetwork1())
-      cout << "TestNetwprk1 succeeded" << endl;
+      cout << "TestNetwork1 succeeded" << endl;
     else
       cout << "TestNetwork1 failed" << endl;
     //if (TestLogRM2())

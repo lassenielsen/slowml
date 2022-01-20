@@ -56,7 +56,7 @@ double LogisticRegressionModel::Cost(const GuidedData<double,double> &instances,
 void LogisticRegressionModel::AddDelta(const Data<double> &inputs, size_t pos, std::vector<double> &deltasum, const double &diff) // {{{
 { for (size_t p=0; p<inputs.Width(); ++p)
   { double a=inputs.GetValue(pos,p);
-    deltasum[p]+=diff*GetParameter(p)*a*(1.0-a);
+    deltasum[p]+=diff*inputs.GetValue(pos,p);
   }
 } // }}}
 vector<double> LogisticRegressionModel::Delta(const GuidedData<double,double> &instances, double lambda) // {{{
