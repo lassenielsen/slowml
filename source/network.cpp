@@ -201,7 +201,7 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
       { Node &n(myNodes[layer+1][node]);
         n.first.SetData(&(delta[layer]),delta[layer].size(),1);
         for (size_t param=0; param<myNodes[layer+1][node].second->CountParameters(); ++param)
-          n.first.SetValue(0,param,n.first.GetValue(0,param)+n.second->GetParameter(param)*delta[layer+1][node]);
+          n.first.SetValue(0,param,n.first.GetValue(0,param)+n.second->GetParameter(param)*delta[layer+1][node+1]);
         // Reset data reference
         n.first.SetData(NULL,0,0);
       }
@@ -244,7 +244,21 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
   for (size_t i=0; i<flat_delta.size(); ++i)
   { flat_delta[i]=flat_delta[i]/instances.Height();
   }
-  // TODO: Add lambda terms
+
+  // Add regularization
+  size_t dest=0;
+  for (size_t layer=0; layer<myNodes.size(); ++layer)
+  { for (size_t node=0; node<myNodes[layer].size(); ++node)
+    { Node &n(myNodes[layer][node]);
+      // Update delta withfrom with 
+      for (size_t i=0; i<n.second->CountParameters(); ++i)
+      { if (i>0)
+          flat_delta[dest]+=n.second->GetParameter(i)*lambda/instances.Height();
+        ++dest;
+      }
+    }
+  }
+
   return flat_delta;
 } // }}}
 

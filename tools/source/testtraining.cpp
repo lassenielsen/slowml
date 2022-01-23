@@ -1137,36 +1137,14 @@ bool TestNetwork0() // {{{
   }
   
   // Test Delta
-  vector<double> delta=model.Delta(t_samples,1.0);
-  cout << "Delta: " << endl;
-  for (size_t i=0; i<delta.size(); ++i)
-  { if (i>0)
-      cout << " ";
-    cout << delta[i];
-  }
-  cout << endl;
-  cout << "Parameters before fit: " << endl;
-  for (size_t i=0; i<model.CountParameters(); ++i)
-  { if (i>0)
-      cout << " ";
-    cout << model.GetParameter(i);
-  }
-  cout << endl;
-  cout << "Eval before fit:" << endl << model.Eval(t_samples,0)[0] << endl;
-  double alpha_inv=100.0;
-  double lambda=1.0;
+  //cout << "Eval before fit:" << endl << model.Eval(t_samples,0)[0] << endl;
+  double alpha_inv=10.0;
+  double lambda=0.0;
   for (size_t c=0; c<100; ++c)
-  { model.FitParameters(t_samples,alpha_inv,lambda,100,false); // Fit
-    cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Debug cost
+  { model.FitParameters(t_samples,alpha_inv,lambda,300,false); // Fit
+    //cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Debug cost
   }
-  cout << "Parameters after fit: " << endl;
-  for (size_t i=0; i<model.CountParameters(); ++i)
-  { if (i>0)
-      cout << " ";
-    cout << model.GetParameter(i);
-  }
-  cout << endl;
-  cout << "Eval after fit:" << endl << model.Eval(t_samples,0)[0] << endl;
+  //cout << "Eval after fit:" << endl << model.Eval(t_samples,0)[0] << endl;
   //// Test
   for (size_t instance=0; instance<t_samples.Height(); ++instance)
   { double eval=model.Eval(t_samples,instance)[0];
@@ -1408,38 +1386,21 @@ bool TestNetwork1() // {{{
   model.AddNode(0,inputs);
   model.AddNode(0,inputs);
   model.AddNode(0,inputs);
-  model.AddNode(1,inputs);
-  // Test Delta
-  vector<double> delta=model.Delta(t_samples,0.0);
-  cout << "Delta: " << endl;
-  for (size_t i=0; i<delta.size(); ++i)
-  { if (i>0)
-      cout << " ";
-    cout << delta[i];
-  }
-  cout << endl;
-  cout << "Parameters before fit: " << endl;
-  for (size_t i=0; i<model.CountParameters(); ++i)
-  { if (i>0)
-      cout << " ";
-    cout << model.GetParameter(i);
-  }
-  cout << endl;
-  cout << "Eval before fit:" << endl << model.Eval(t_test_data,0)[0] << endl;
-  double alpha_inv=50000.0;
-  double lambda=1.0;
+  model.AddNode(0,inputs);
+  model.AddNode(0,inputs);
+  model.AddNode(0,inputs);
+  vector<size_t> inputs2({0,1,2,3,4,5,6}) ;
+  model.AddNode(1,inputs2);
+  model.AddNode(1,inputs2);
+  model.AddNode(1,inputs2);
+  model.AddNode(1,inputs2);
+  model.AddNode(1,inputs2);
+  model.AddNode(1,inputs2);
+  model.AddNode(2,inputs2);
+  double alpha_inv=2.0;
+  double lambda=0.0;
   for (size_t c=0; c<100; ++c)
-  { model.FitParameters(t_samples,alpha_inv,lambda,3000,false); // Fit
-    cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Debug cost
-  }
-  cout << "Parameters after fit: " << endl;
-  for (size_t i=0; i<model.CountParameters(); ++i)
-  { if (i>0)
-      cout << " ";
-    cout << model.GetParameter(i);
-  }
-  cout << endl;
-  cout << "Eval after fit:" << endl << model.Eval(t_test_data,0)[0] << endl;
+    model.FitParameters(t_samples,alpha_inv,lambda,500,false); // Fit
   //// Test
   for (size_t instance=0; instance<t_test.Height(); ++instance)
   { double eval=model.Eval(t_test,instance)[0];
