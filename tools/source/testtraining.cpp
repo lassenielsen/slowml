@@ -1397,10 +1397,12 @@ bool TestNetwork1() // {{{
   model.AddNode(1,inputs2);
   model.AddNode(1,inputs2);
   model.AddNode(2,inputs2);
-  double alpha_inv=2.0;
-  double lambda=0.0;
+  double alpha_inv=0.0;
+  double lambda=0.2;
   for (size_t c=0; c<100; ++c)
-    model.FitParameters(t_samples,alpha_inv,lambda,500,false); // Fit
+  { model.FitParameters(t_samples,alpha_inv,lambda,100,false); // Fit
+    //cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Cost
+  }
   //// Test
   for (size_t instance=0; instance<t_test.Height(); ++instance)
   { double eval=model.Eval(t_test,instance)[0];

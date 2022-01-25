@@ -24,8 +24,12 @@ class Network : public Model<std::vector<double> > // {{{
     size_t CountParameters() const;
     double GetParameter(size_t i) const;
     void SetParameter(size_t i, double val);
+    void SaveStructure(std::ostream &dest) const;
+    void LoadStructure(std::istream &dest) ;
     void SaveParameters(std::ostream &dest, bool saveSize=true) const;
     void LoadParameters(std::istream &src, bool loadSize=true);
+    void Save(std::ostream &dest, bool saveStructure=true) const;
+    void Load(std::istream &src, bool loadStructure=true);
 
   private:
     std::vector<std::vector<Node> > myNodes;

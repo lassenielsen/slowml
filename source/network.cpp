@@ -158,14 +158,13 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
     //  cout << endl;
     //} // }}}
     vector< vector<double> > signals;
-    // Calculate signals
+    // Calculate signals - myNodes[l][n] outputs signals[l+1][n+1]
     signals.push_back(vector<double>(instances.Width()));
     for (size_t i=0; i<instances.Width(); ++i)
       signals[0][i]=instances.GetValue(pos,i);
     for (size_t layer=0; layer<myNodes.size(); ++layer)
     { signals.push_back(vector<double>());
-      if (layer+1<myNodes.size())
-        signals[layer+1].push_back(1.0);
+      signals[layer+1].push_back(1.0);
       for (size_t node=0; node<myNodes[layer].size(); ++node)
       { Node &n(myNodes[layer][node]);
         n.first.SetData(&(signals[layer]),signals[layer].size(),1);
@@ -185,14 +184,14 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
     //  cout << endl;
     //} // }}}
 
-    // Calculate delta
+    // Calculate delta - myNodes[l][n] has error delta[l][n+1]
     vector< vector<double> > delta;
     while (delta.size()<myNodes.size())
       delta.push_back(vector<double>(myNodes[delta.size()].size()+1,0.0));
     
     // Compute delta for the last layer
     for (size_t i=0; i<delta[delta.size()-1].size(); ++i)
-      delta[delta.size()-1][i+1]=signals[signals.size()-1][i]-instances.GetResult(pos)[i];
+      delta[delta.size()-1][i+1]=signals[signals.size()-1][i+1]-instances.GetResult(pos)[i];
     // Backpropagate delta
     for (int layer=delta.size()-2; layer>=0; --layer)
     { //Computer delata[layer] from delta[layer+1], signals[layer] and parameters
@@ -205,9 +204,9 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
         // Reset data reference
         n.first.SetData(NULL,0,0);
       }
-      // Multiply by signals(l) * (1-signals(l)
+      // Multiply by signals(l) * (1-signals(l))
       for (size_t node=0; node<delta[layer].size(); ++node)
-        delta[layer][node]=delta[layer][node]*sigmoid_deriv(signals[layer+1][node+1]);
+        delta[layer][node]=delta[layer][node]*sigmoid_deriv(signals[layer+1][node]);
     }
 
     //// Debug delta {{{
@@ -250,10 +249,10 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
   for (size_t layer=0; layer<myNodes.size(); ++layer)
   { for (size_t node=0; node<myNodes[layer].size(); ++node)
     { Node &n(myNodes[layer][node]);
-      // Update delta withfrom with 
+      // Update flat_delta regularization 
       for (size_t i=0; i<n.second->CountParameters(); ++i)
       { if (i>0)
-          flat_delta[dest]+=n.second->GetParameter(i)*lambda/instances.Height();
+          flat_delta[dest]+=lambda*n.second->GetParameter(i)/instances.Height();
         ++dest;
       }
     }
@@ -290,9 +289,21 @@ void Network::SetParameter(size_t i, double val) // {{{
     }
   throw string("Network::SetParameter: Index out of bounds");
 } // }}}
-void Network::SaveParameters(ostream &dest, bool saveSize) const // {{{
+void Network::SaveStructure(ostream &dest) const // {{{
 { throw string("Network::SaveParameters: Not yet implemented");
 } // }}}
-void Network::LoadParameters(istream &src, bool loadSize) // {{{
+void Network::LoadStructure(istream &dest) // {{{
+{ throw string("Network::SaveParameters: Not yet implemented");
+} // }}}
+void Network::SaveParameters(ostream &dest, bool saveStructure) const // {{{
+{ throw string("Network::SaveParameters: Not yet implemented");
+} // }}}
+void Network::LoadParameters(istream &src, bool loadStructure) // {{{
+{ throw string("Network::LoadParameters: Not yet implemented");
+} // }}}
+void Network::Save(ostream &dest, bool saveStructure) const // {{{
+{ throw string("Network::SaveParameters: Not yet implemented");
+} // }}}
+void Network::Load(istream &src, bool loadStructure) // {{{
 { throw string("Network::LoadParameters: Not yet implemented");
 } // }}}

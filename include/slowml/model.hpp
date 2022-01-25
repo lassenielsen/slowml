@@ -62,7 +62,7 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
     { double tmp_cost=Cost(instances,lambda);
       double new_cost=cost;
       // Try increasing alpha
-      while (tmp_cost<new_cost)
+      while (tmp_cost<new_cost && alpha_inv>=2)
       {
         for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)+delta[p]/alpha_inv);
