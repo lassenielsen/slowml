@@ -1,5 +1,7 @@
 #include <slowml/network.hpp>
+#include <slowml/network_bnf.hpp>
 #include <slowml/logisticregressionmodel.hpp>
+#include <dpl/slrparser.hpp>
 #include <cstdlib>
 #include <cmath>
 
@@ -306,4 +308,127 @@ void Network::Save(ostream &dest, bool saveStructure) const // {{{
 } // }}}
 void Network::Load(istream &src, bool loadStructure) // {{{
 { throw string("Network::LoadParameters: Not yet implemented");
+} // }}}
+Network *Network::Parse(const std::string &networkstr) // {{{
+{ dpl::SlrParser parser("network");
+  parser.Load(std::string((char*)bnf_network_bnf,bnf_network_bnf_len));
+  dpl::parsetree *tree=parser.Parse(networkstr);
+  Network *result=ParseNetwork(*tree);
+  delete tree;
+  return result;
+} // }}}
+Network *Network::ParseNetwork(const dpl::parsetree &tree) // {{{
+{ if (tree.TypeCase()=="network.net")
+  { Network *result=new Network(std::stoi(tree.Child("features")->Token().Content()));
+    ParseLayers(*result,*tree.Child("layers"));
+    return result;
+  }
+  else
+    throw string("Network::ParseNetwork: Unknown case ")+tree.TypeCase();
+} // }}}
+void Network::ParseLayers(Network &dest, const dpl::parsetree &tree) // {{{
+{ if (tree.TypeCase()=="layers.lvl")
+  { return ParseLayers(dest,*tree.Child("layers"));
+  }
+  else if (tree.TypeCase()=="layers.cons")
+  { ParseLayers(dest,*tree.Child("first"));
+    return ParseLayers(dest,*tree.Child("second"));
+  }
+  else if (tree.TypeCase()=="layers2.end")
+  { return ParseNodes(dest,dest.Layers(),*tree.Child("layer"));
+  }
+  else if (tree.TypeCase()=="layers2.mul")
+  { int its=std::stoi(tree.Child("iterations")->Token().Content());
+    for (int i=0; i<its; ++i)
+      ParseLayers(dest,*tree.Child("layers"));
+    return;
+  }
+  else if (tree.TypeCase()=="layers2.par")
+  { return ParseLayers(dest,*tree.Child("layers"));
+  }
+  else
+    throw string("Network::ParseLayers: Unknown case ")+tree.TypeCase();
+} // }}}
+void Network::ParseNodes(Network &dest, size_t layer, const dpl::parsetree &tree) // {{{
+{ if (tree.TypeCase()=="layer.nodes")
+  { return ParseNodes(dest,layer,*tree.Child("nodes"));
+  }
+  else if (tree.TypeCase()=="nodes.lvl")
+  { ParseNodes(dest,layer,*tree.Child("first"));
+    return ParseNodes(dest,layer,*tree.Child("nodes"));
+  }
+  else if (tree.TypeCase()=="nodes.cons")
+  { ParseNodes(dest,layer,*tree.Child("first"));
+    return ParseNodes(dest,layer,*tree.Child("second"));
+  }
+  else if (tree.TypeCase()=="nodes2.end")
+  { return ParseNode(dest,layer,*tree.Child("node"));
+  }
+  else if (tree.TypeCase()=="nodes2.mul")
+  { int its=std::stoi(tree.Child("iterations")->Token().Content());
+    for (int i=0; i<its; ++i)
+      ParseNodes(dest,layer,*tree.Child("nodes"));
+    return;
+  }
+  else if (tree.TypeCase()=="nodes2.par")
+  { return ParseNodes(dest,layer,*tree.Child("nodes"));
+  }
+  else
+    throw string("Network::ParseNodes: Unknown case ")+tree.TypeCase();
+} // }}}
+void Network::ParseNode(Network &dest, size_t layer, const dpl::parsetree &tree) // {{{
+{ if (tree.TypeCase()=="node.unam")
+  { vector<size_t> node_sources;
+    vector<double> node_weights;
+    size_t node_inputs=dest.Layers()>0?dest.LayerSize(dest.Layers()-1):dest.InputSize();
+    ParseInputs(node_inputs,node_sources,node_weights,*tree.Child("inputs"));
+    size_t node_id=dest.AddNode(layer,node_sources);
+    for (size_t i=0; i<node_weights.size(); ++i)
+      dest.GetNode(layer,node_id).second->SetParameter(i,node_weights[i]);
+    return;
+  }
+  else if (tree.TypeCase()=="node.nam")
+  { // Ignore names for now
+    vector<size_t> node_sources;
+    vector<double> node_weights;
+    size_t node_inputs=dest.Layers()>0?dest.LayerSize(dest.Layers()-1):dest.InputSize();
+    ParseInputs(node_inputs,node_sources,node_weights,*tree.Child("inputs"));
+    size_t node_id=dest.AddNode(layer,node_sources);
+    for (size_t i=0; i<node_weights.size(); ++i)
+      dest.GetNode(layer,node_id).second->SetParameter(i,node_weights[i]);
+    return;
+  }
+  else
+    throw string("Network::ParseNode: Unknown case ")+tree.TypeCase();
+} // }}}
+void Network::ParseInputs(size_t inputs, vector<size_t> &sources, vector<double> &weights, const dpl::parsetree &tree) // {{{
+{ if (tree.TypeCase()=="inputs.all")
+  { for (size_t i=0; i<inputs; ++i)
+    { sources.push_back(i);
+      weights.push_back((50000.0-rand()%100000)/10000.0); // Use random weights
+    }
+    return;
+  }
+  else if (tree.TypeCase()=="inputs.lvl")
+  { return ParseInputs(inputs,sources,weights,*tree.Child("inputs"));
+  }
+  else if (tree.TypeCase()=="inputs2.end")
+  { return ParseInputs(inputs,sources,weights,*tree.Child("input"));
+  }
+  else if (tree.TypeCase()=="inputs2.cons")
+  { ParseInputs(inputs,sources,weights,*tree.Child("input"));
+    return ParseInputs(inputs,sources,weights,*tree.Child("inputs"));
+  }
+  else if (tree.TypeCase()=="input.idx")
+  { sources.push_back(std::stoi(tree.Child("idx")->Token().Content()));
+    weights.push_back((50000.0-rand()%100000)/10000.0); // Use random weights
+    return;
+  }
+  else if (tree.TypeCase()=="input.wgt")
+  { sources.push_back(std::stoi(tree.Child("idx")->Token().Content()));
+    weights.push_back(std::stod(tree.Child("weight")->Token().Content())); // Use random weights
+    return;
+  }
+  else
+    throw string("Network::ParseInputs: Unknown case ")+tree.TypeCase();
 } // }}}

@@ -125,7 +125,7 @@ $(libname)$(libversion): $(library_objects)
 include/$(name)/%_bnf.hpp: bnf/%.bnf
 	xxd -i bnf/$*.bnf > include/$(name)/$*_bnf.hpp
 
-objects/%.o: source/%.cpp include/$(name)/*.hpp  include/$(name)/config.hpp include/$(name)/vectormap_bnf.hpp
+objects/%.o: source/%.cpp include/$(name)/*.hpp  include/$(name)/config.hpp include/$(name)/vectormap_bnf.hpp include/$(name)/network_bnf.hpp
 	@mkdir -p objects
 	$(compiler) -c source/$*.cpp $(args) $(opt) -o objects/$*.o
 

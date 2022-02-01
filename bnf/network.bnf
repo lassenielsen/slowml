@@ -1,0 +1,48 @@
+# Examples
+
+# Example 1: Network design: 3 features input, 2 layers with two nodes each
+# (fully connected), and 2 nodes in the output layer
+# 3->[[3*[all]],[3*[all]],[[all->isA],[all->isB]]]
+
+# Example 2: Trained network (with weights) from Example 1
+# 100->[[[0:0.1,1:0.2,2:0.3],[0:0.4,1:0.5,2:0.6]],
+#       [[0:1.1,1:1.2,2:1.3],[0:1.4,1:1.5,2:1.6]],
+#       [[0:2.1,1:2.2,2:2.3->isA],[0:2.4,1:2.5,2:2.6->isB]]]
+:= "[ \\t\\r\\n\\f][ \\t\\r\\n\\f]*"
+
+ID :=_2 "[a-zA-Z][a-zA-Z0-0_]*"
+INT :=_2 "(1+-)[0-9][0-9]*"
+FLOAT :=_3 "(1+-)[0-9][0-9]*[.][0-9][0-9]*"
+LPAR := "\\("
+RPAR := "\\)"
+LBRAC := "\\["
+RBRAC := "\\]"
+-> :=_2 "->"
+, := ","
+* := "[*]"
+ALL := "all+full"
+
+{ := "\\{"
+} := "\\}"
+COLON := "[:]"
+
+network ::= ::net INT ::features -> LBRAC layers ::layers RBRAC
+layers ::= ::lvl layers2 ::layers
+         | ::cons layers2 ::first , layers ::second
+layers2 ::= ::end layer ::layer
+          | ::mul INT ::iterations * layers2 ::layers
+          | ::par LPAR layers ::layers RPAR
+layer ::= ::nodes LBRAC nodes RBRAC
+nodes ::= ::lvl nodes2 ::nodes
+        | ::cons nodes2 ::first , nodes ::second
+nodes2 ::= ::end node ::node
+         | ::mul INT ::iterations * nodes2 ::nodes
+         | ::par LPAR nodes ::nodes RPAR
+node ::= ::unam LBRAC inputs ::inputs RBRAC
+       | ::nam  LBRAC inputs ::inputs -> ID ::nam RBRAC
+inputs ::= ::all ALL
+         | ::lvl inputs2 ::inputs
+inputs2 ::= ::end input ::input
+          | ::cons input ::input , inputs2 ::inputs
+input ::= ::idx INT ::idx
+        | ::wgt INT ::idx COLON FLOAT ::weight
