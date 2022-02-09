@@ -12,6 +12,7 @@ template<class T> class WrapperData : public Data<T> // {{{
 
     void SetData(std::vector<T> *data, size_t width, size_t height);
 
+    const std::vector<size_t> &GetMap() const { return myMap; }
   private:
     std::vector<T> *myDataPtr;
     std::vector<size_t> myMap;

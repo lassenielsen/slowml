@@ -32,7 +32,7 @@ layers ::= ::lvl layers2 ::layers
 layers2 ::= ::end layer ::layer
           | ::mul INT ::iterations * layers2 ::layers
           | ::par LPAR layers ::layers RPAR
-layer ::= ::nodes LBRAC nodes RBRAC
+layer ::= ::nodes LBRAC nodes ::nodes RBRAC
 nodes ::= ::lvl nodes2 ::nodes
         | ::cons nodes2 ::first , nodes ::second
 nodes2 ::= ::end node ::node

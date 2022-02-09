@@ -14,7 +14,7 @@ class GuidedDataClassWrapper : public GuidedData<double,double> // {{{
     virtual ~GuidedDataClassWrapper() { }
     double GetValue(size_t instance, size_t i) const { return myDataRef.GetValue(instance,i); }
     void SetValue(size_t instance, size_t i, const double &val) { throw std::string("GuideVectorDataClassWrapper::SetValue invoked"); }
-    virtual const double GetResult(size_t instance) const { return myDataRef.GetResult(instance)==myClass?myTrueResult:myFalseResult; }
+    virtual const double &GetResult(size_t instance) const { return myDataRef.GetResult(instance)==myClass?myTrueResult:myFalseResult; }
 
  private:
    const GuidedData<double,size_t> &myDataRef;

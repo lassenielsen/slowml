@@ -23,7 +23,8 @@ Network::~Network() // {{{
 } // }}}
 
 size_t Network::AddNode(size_t layer, const vector<size_t> &inputs) // {{{
-{ while (myNodes.size()<=layer)
+{ cout << "Network::AddNode(" << layer << "," << inputs.size() << ")" << endl;
+  while (myNodes.size()<=layer)
     myNodes.push_back(vector<Node>());
   
   Node node(WrapperData<double>(0,0,inputs,NULL),new LogisticRegressionModel());
@@ -32,7 +33,7 @@ size_t Network::AddNode(size_t layer, const vector<size_t> &inputs) // {{{
   for (size_t i=1; i<inputs.size(); ++i)
     node.second->AddParameter((500.0-rand()%1000)/100.0);
   myNodes[layer].push_back(node);
-  return myNodes[layer].size();
+  return myNodes[layer].size()-1;
 } // }}}
 
 vector<double> Network::Eval(const Data<double> &instances, size_t pos) // {{{
@@ -193,7 +194,9 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
     
     // Compute delta for the last layer
     for (size_t i=0; i<delta[delta.size()-1].size(); ++i)
+    { cout << "Result: " << instances.GetResult(pos)[i] << endl;
       delta[delta.size()-1][i+1]=signals[signals.size()-1][i+1]-instances.GetResult(pos)[i];
+    }
     // Backpropagate delta
     for (int layer=delta.size()-2; layer>=0; --layer)
     { //Computer delata[layer] from delta[layer+1], signals[layer] and parameters
@@ -291,23 +294,30 @@ void Network::SetParameter(size_t i, double val) // {{{
     }
   throw string("Network::SetParameter: Index out of bounds");
 } // }}}
-void Network::SaveStructure(ostream &dest) const // {{{
-{ throw string("Network::SaveParameters: Not yet implemented");
+void Network::SaveParameters(ostream &dest, bool saveSize) const // {{{
+{ dest << myInputSize << "->[";
+  for (size_t layer=0; layer<myNodes.size(); ++layer)
+  { if (layer>0)
+      dest << ",";
+    dest << "[";
+    for (size_t node=0; node<myNodes[layer].size(); ++node)
+    { if (node>0)
+        dest << ",";
+      dest << "[";
+      for (size_t par=0; par<myNodes[layer][node].first.Width(); ++par)
+      { if (par>0)
+          dest << ",";
+          dest << myNodes[layer][node].first.GetMap()[par] << ":" << myNodes[layer][node].second->GetParameter(par);
+      }
+      dest << "]";
+    }
+    dest << "]" << endl;
+  }
+  dest << "]";
+  return;
 } // }}}
-void Network::LoadStructure(istream &dest) // {{{
-{ throw string("Network::SaveParameters: Not yet implemented");
-} // }}}
-void Network::SaveParameters(ostream &dest, bool saveStructure) const // {{{
-{ throw string("Network::SaveParameters: Not yet implemented");
-} // }}}
-void Network::LoadParameters(istream &src, bool loadStructure) // {{{
-{ throw string("Network::LoadParameters: Not yet implemented");
-} // }}}
-void Network::Save(ostream &dest, bool saveStructure) const // {{{
-{ throw string("Network::SaveParameters: Not yet implemented");
-} // }}}
-void Network::Load(istream &src, bool loadStructure) // {{{
-{ throw string("Network::LoadParameters: Not yet implemented");
+void Network::LoadParameters(istream &src, bool loadSize) // {{{
+{ throw string("Network::LoadParameters Not Implemented");
 } // }}}
 Network *Network::Parse(const std::string &networkstr) // {{{
 { dpl::SlrParser parser("network");
@@ -354,8 +364,7 @@ void Network::ParseNodes(Network &dest, size_t layer, const dpl::parsetree &tree
   { return ParseNodes(dest,layer,*tree.Child("nodes"));
   }
   else if (tree.TypeCase()=="nodes.lvl")
-  { ParseNodes(dest,layer,*tree.Child("first"));
-    return ParseNodes(dest,layer,*tree.Child("nodes"));
+  { return ParseNodes(dest,layer,*tree.Child("nodes"));
   }
   else if (tree.TypeCase()=="nodes.cons")
   { ParseNodes(dest,layer,*tree.Child("first"));
@@ -380,7 +389,7 @@ void Network::ParseNode(Network &dest, size_t layer, const dpl::parsetree &tree)
 { if (tree.TypeCase()=="node.unam")
   { vector<size_t> node_sources;
     vector<double> node_weights;
-    size_t node_inputs=dest.Layers()>0?dest.LayerSize(dest.Layers()-1):dest.InputSize();
+    size_t node_inputs=layer>0?dest.LayerSize(layer-1)+1:dest.InputSize();
     ParseInputs(node_inputs,node_sources,node_weights,*tree.Child("inputs"));
     size_t node_id=dest.AddNode(layer,node_sources);
     for (size_t i=0; i<node_weights.size(); ++i)
@@ -391,7 +400,7 @@ void Network::ParseNode(Network &dest, size_t layer, const dpl::parsetree &tree)
   { // Ignore names for now
     vector<size_t> node_sources;
     vector<double> node_weights;
-    size_t node_inputs=dest.Layers()>0?dest.LayerSize(dest.Layers()-1):dest.InputSize();
+    size_t node_inputs=layer>0?dest.LayerSize(layer-1)+1:dest.InputSize();
     ParseInputs(node_inputs,node_sources,node_weights,*tree.Child("inputs"));
     size_t node_id=dest.AddNode(layer,node_sources);
     for (size_t i=0; i<node_weights.size(); ++i)

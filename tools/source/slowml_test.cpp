@@ -4,6 +4,7 @@
 #include <fstream>
 #include <dirent.h>
 #include <stdio.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -18,6 +19,9 @@ vector<string> GetLabelsDirs(const string &path) // {{{
     entry = readdir(dir);
   }
   closedir(dir);
+
+  // Sort result
+  std::sort(result.begin(),result.end());
   return result;
 } // }}}
 vector<string> GetVectorFiles(const string &path) // {{{
