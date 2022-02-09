@@ -16,7 +16,7 @@ template<class T>class VectorData : public Data<T> // {{{
 
     T GetValue(size_t instance, size_t i) const
     { return myValues[Data<T>::Width()*instance+i];
-     }
+    }
     void SetValue(size_t instance, size_t i, const T &val) { myValues[Data<T>::Width()*instance+i]=val; }
 
     const std::vector<T> &GetValues() const { return myValues; }

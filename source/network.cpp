@@ -193,8 +193,8 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
       delta.push_back(vector<double>(myNodes[delta.size()].size()+1,0.0));
     
     // Compute delta for the last layer
-    for (size_t i=0; i<delta[delta.size()-1].size(); ++i)
-    { cout << "Result: " << instances.GetResult(pos)[i] << endl;
+    for (size_t i=0; i+1<delta[delta.size()-1].size(); ++i)
+    { //cout << "Result: " << instances.GetResult(pos)[i] << endl;
       delta[delta.size()-1][i+1]=signals[signals.size()-1][i+1]-instances.GetResult(pos)[i];
     }
     // Backpropagate delta

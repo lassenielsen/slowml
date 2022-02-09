@@ -7,5 +7,5 @@ template<class T, class R>class GuidedData : public Data<T> // {{{
     : Data<T>(width,height)
     { } // }}}
     virtual ~GuidedData() {}
-    virtual const R &GetResult(size_t instance) const=0;
+    virtual const R GetResult(size_t instance) const=0;
 }; // }}}

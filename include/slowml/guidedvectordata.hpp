@@ -18,7 +18,7 @@ template<class T, class R>class GuidedVectorData : public GuidedData<T,R> // {{{
     void SetValue(size_t instance, size_t i, const T &val) { myData.SetValue(instance,i,val); }
 
     const Data<T> &GetData() const { return myData; }
-    virtual const R &GetResult(size_t instance) const
+    virtual const R GetResult(size_t instance) const
     { return myResults.GetValue(instance,0);
     }
 
