@@ -307,7 +307,7 @@ void Network::SaveParameters(ostream &dest, bool saveSize) const // {{{
       for (size_t par=0; par<myNodes[layer][node].first.Width(); ++par)
       { if (par>0)
           dest << ",";
-          dest << myNodes[layer][node].first.GetMap()[par] << ":" << myNodes[layer][node].second->GetParameter(par);
+          dest << myNodes[layer][node].first.GetMap()[par] << ":" << std::fixed << myNodes[layer][node].second->GetParameter(par);
       }
       dest << "]";
     }

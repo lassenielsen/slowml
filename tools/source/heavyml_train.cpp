@@ -61,7 +61,7 @@ std::string string_replace(const std::string &src,const std::string &search, con
 vector<double> IdVec(size_t length, size_t pos) // {{{
 { vector<double> result;
   for (size_t i=0; i<length; ++i)
-  { if (i==0)
+  { if (i==pos)
       result.push_back(1.0);
     else
       result.push_back(0.0);
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
       { ++arg;
         if (arg+1>=argc)
           throw string("--network must be succeeded by another arg");
-        network=argv[arg];
+       network=argv[arg];
       }
       else if (string("--vectormap")==argv[arg] || string("-vm")==argv[arg])
       { ++arg;
