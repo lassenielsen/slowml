@@ -74,8 +74,8 @@ int main(int argc, char **argv)
         stringstream ss;
         ss << argv[arg];
         ss >> gd_alphainv;
-        if (gd_alphainv<=0)
-          throw string("--gd_alphainv must be succeeded by positive integer");
+        if (gd_alphainv<0)
+          throw string("--gd_alphainv must be succeeded by a nonnegative value");
       }
       else if (string("--gd_lambda")==argv[arg] || string("-gdl")==argv[arg])
       { ++arg;

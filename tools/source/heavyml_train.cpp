@@ -103,8 +103,8 @@ int main(int argc, char **argv)
         stringstream ss;
         ss << argv[arg];
         ss >> gd_alphainv;
-        if (gd_alphainv<=0)
-          throw string("--gd_alphainv must be succeeded by positive integer");
+        if (gd_alphainv<0)
+          throw string("--gd_alphainv must be succeeded by a nonnegative value");
       }
       else if (string("--gd_lambda")==argv[arg] || string("-gdl")==argv[arg])
       { ++arg;
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
     Network *model=Network::Parse(network_str);
 
     GuidedVectorData<double,vector<double> > gdata(mapdata,truths);
-    cout << "Training " << mapdata.Width() << " parameters" << endl;
+    cout << "Training " << model->CountParameters() << " parameters" << endl;
     model->FitParameters(gdata,gd_alphainv,gd_lambda,gd_repetitions,option_debug);
     cout << "Training parameters done" << endl;
     cout << "Saving model parameters in " << modelfile << flush;

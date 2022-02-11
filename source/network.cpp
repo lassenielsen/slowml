@@ -23,13 +23,13 @@ Network::~Network() // {{{
 } // }}}
 
 size_t Network::AddNode(size_t layer, const vector<size_t> &inputs) // {{{
-{ cout << "Network::AddNode(" << layer << "," << inputs.size() << ")" << endl;
+{ //cout << "Network::AddNode(" << layer << "," << inputs.size() << ")" << endl;
   while (myNodes.size()<=layer)
     myNodes.push_back(vector<Node>());
   
   Node node(WrapperData<double>(0,0,inputs,NULL),new LogisticRegressionModel());
   if (inputs[0]!=0)
-    cout << "Network::AddNode: input 0 is not used.";
+    cout << "Warning: Network::AddNode: input 0 is not used.";
   for (size_t i=1; i<inputs.size(); ++i)
     node.second->AddParameter((500.0-rand()%1000)/100.0);
   myNodes[layer].push_back(node);
