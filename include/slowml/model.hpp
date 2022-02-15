@@ -45,7 +45,7 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
   double cost=0;
   if (alpha_inv==0.0)
   { alpha_dynamic=true;
-    alpha_inv=50.0;
+    alpha_inv=2.0;
     cost=Cost(instances,lambda);
   }
   for (size_t r=0; r<repetitions; ++r)
@@ -54,10 +54,6 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
     // Simultaneous update of parameters
     for (size_t p=0; p<CountParameters(); ++p)
       SetParameter(p,GetParameter(p)-delta[p]/alpha_inv);
-    //if (debug)
-    //{ for (size_t p=0; p<CountParameters(); ++p)
-    //    std::cout << "  delta_" << p << "=" << delta[p] << std::endl;
-    //}
     if (alpha_dynamic)
     { double tmp_cost=Cost(instances,lambda);
       double new_cost=cost;
@@ -66,7 +62,9 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
       {
         for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)+delta[p]/alpha_inv);
-        alpha_inv/=1.3; //-=1.0;
+        alpha_inv/=2.0;
+        if (debug)
+          cout << "-" << flush;
         for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)-delta[p]/alpha_inv);
         new_cost=tmp_cost;
@@ -85,15 +83,17 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
       new_cost=tmp_cost;
       // Decrease alpha until decreasing cost
       while (new_cost>cost && alpha_inv<10000)
-      { //if (debug)
-        //  std::cout << ".";//"LinearRegressionModel::FitParameters: cost increased - updating alpha" << std::endl;
-        for (size_t p=0; p<CountParameters(); ++p)
+      { for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)+delta[p]/alpha_inv);
         alpha_inv*=2.0;
+        if (debug)
+          cout << "+" << flush;
         for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)-delta[p]/alpha_inv);
         new_cost=Cost(instances,lambda);
       }
+      if (debug)
+        cout << "." << endl;
       cost=new_cost;
     }
     else if (debug)
@@ -102,8 +102,6 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
     if (debug)
     { std::cout << "Model::FitParameters: After step " << r << std::endl
            << "  alpha_inv=" << alpha_inv << std::endl;
-      //for (size_t p=0; p<CountParameters(); ++p)
-      //  std::cout << "  parameter " << p << "=" << GetParameter(p) << std::endl;
       std::cout << "  cost=" << cost << std::endl;
     }
   }

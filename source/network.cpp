@@ -4,6 +4,7 @@
 #include <dpl/slrparser.hpp>
 #include <cstdlib>
 #include <cmath>
+#include <algorithm>
 
 using namespace std;
 
@@ -33,6 +34,16 @@ size_t Network::AddNode(size_t layer, const vector<size_t> &inputs) // {{{
   for (size_t i=1; i<inputs.size(); ++i)
     node.second->AddParameter((500.0-rand()%1000)/100.0);
   myNodes[layer].push_back(node);
+
+  // Add entries to myPmap
+  vector<tuple<size_t,size_t,size_t> > elts;
+  for (size_t par=0; par<inputs.size(); ++par)
+  { tuple<size_t,size_t,size_t> elt(layer,myNodes[layer].size()-1,par);
+    elts.push_back(elt);
+  }
+  tuple<size_t,size_t,size_t> nxt(layer+1,0,0);
+  vector<tuple<size_t,size_t,size_t> >::iterator pos=std::find(myPmap.begin(),myPmap.end(),nxt);
+  myPmap.insert(pos,elts.begin(),elts.end());
   return myNodes[layer].size()-1;
 } // }}}
 
@@ -120,7 +131,11 @@ double Network::LogDistance(const vector<double> &guess, const vector<double> &t
     throw string("Network::LogDistance input width does not match");
   double dist=0.0;
   for (size_t i=0; i<guess.size(); ++i)
-  { dist+= -truth[i]*log(guess[i])-(1-truth[i])*log(1-guess[i]);
+  { double distPart=-truth[i]*log(guess[i])-(1.0-truth[i])*log(1.000000000001-guess[i]);
+    if (std::isnan(distPart) || std::isinf(distPart))
+      return 1.0/0.0;
+    //cout << "Network::LogDistance: diff of " << guess[i] << " and " << truth[i] << " is " <<  << endl;
+    dist+= distPart;
   }
   return dist;
 } // }}}
@@ -128,14 +143,25 @@ double Network::LogDistance(const vector<double> &guess, const vector<double> &t
 double Network::Cost(const GuidedData<double,vector<double>> &instances, double lambda) // {{{
 { double cost=0;
   for (size_t i=0; i<instances.Height(); ++i)
+  { vector<double> r1=Eval(instances,i);
+    //for (size_t j=0; j<r1.size(); ++j)
+    //  cout << "Eval[" << j << "]=" << r1[j] << endl;
+    //for (size_t j=0; j<instances.GetResult(i).size(); ++j)
+    //  cout << "Truth[" << j <<"]=" << instances.GetResult(i)[j] << endl;
+    //cout << "Network Cost: LogDistance=" << LogDistance(Eval(instances,i),instances.GetResult(i)) << endl;
     cost += LogDistance(Eval(instances,i),instances.GetResult(i));
+  }
+  
+  //cout << "Network Cost: Total Cost sum=" << cost << endl;
   cost = cost/(double)instances.Height();
+  //cout << "Network Cost: Total Cost sum per instance=" << cost << endl;
 
   // Add Regularization
   for (size_t layer=0; layer<myNodes.size(); ++layer)
     for (size_t node=0; node<myNodes[layer].size(); ++node)
       for (size_t param=1; param<myNodes[layer][node].second->CountParameters(); ++param)
         cost +=lambda*pow(myNodes[layer][node].second->GetParameter(param),2.0)/(2.0*instances.Height());
+  //cout << "Network Cost: Total Regulated cost per instance=" << cost << endl;
   return cost;
 } // }}}
 inline double sigmoid_deriv(double val) // {{{
@@ -266,36 +292,9 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
   return flat_delta;
 } // }}}
 
-size_t Network::CountParameters() const // {{{
-{ size_t result=0;
-  for (size_t layer=0; layer<myNodes.size(); ++layer)
-    for (size_t node=0; node<myNodes[layer].size(); ++node)
-      result+=myNodes[layer][node].second->CountParameters();
-
-  return result;
-} // }}}
-double Network::GetParameter(size_t i) const // {{{
-{ for (size_t layer=0; layer<myNodes.size(); ++layer)
-    for (size_t node=0; node<myNodes[layer].size(); ++node)
-    { if (i<=myNodes[layer][node].second->CountParameters())
-        return myNodes[layer][node].second->GetParameter(i);
-      else
-        i-=myNodes[layer][node].second->CountParameters();
-    }
-  throw string("Network::GetParameter: Index out of bounds");
-} // }}}
-void Network::SetParameter(size_t i, double val) // {{{
-{ for (size_t layer=0; layer<myNodes.size(); ++layer)
-    for (size_t node=0; node<myNodes[layer].size(); ++node)
-    { if (i<=myNodes[layer][node].second->CountParameters())
-        return myNodes[layer][node].second->SetParameter(i,val);
-      else
-        i-=myNodes[layer][node].second->CountParameters();
-    }
-  throw string("Network::SetParameter: Index out of bounds");
-} // }}}
 void Network::SaveParameters(ostream &dest, bool saveSize) const // {{{
-{ dest << myInputSize << "->[";
+{ dest.precision(std::numeric_limits<double>::max_digits10 - 1);
+  dest << myInputSize << "->[";
   for (size_t layer=0; layer<myNodes.size(); ++layer)
   { if (layer>0)
       dest << ",";

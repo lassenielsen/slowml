@@ -73,7 +73,7 @@ vector<double> IdVec(size_t length, size_t pos) // {{{
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is heavyml_train [--gd_repetitions|-gdr <int=50000>] [--gd_alphainv|-gda <double=100>] [--gd_lambda|-gdl <double=1>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">][--vectormap|-vm <map=\"X->X\">] [--output|-o <modelpath=./model.pars>] [--continue|-c] [--debug|-d] <datapath>");
+      throw string("Syntax is heavyml_train [--gd_repetitions|-gdr <int=50000>] [--gd_alphainv|-gda <double=100>] [--gd_lambda|-gdl <double=1>] [--model|-m <modelpath>] [--network|-n <network=\"#features->[3*[3*[all]],[#labels*[all]]]\">][--vectormap|-vm <map=\"X->X\">] [--output|-o <modelpath=./model.pars>] [--continue|-c] [--debug|-d] <datapath>");
 
     string datapath="./data";
     string modelfile="./model.pars";
@@ -115,6 +115,16 @@ int main(int argc, char **argv)
         ss >> gd_lambda;
         if (gd_lambda<=0)
           throw string("--gd_lambda must be succeeded by positive number");
+      }
+      else if (string("--model")==argv[arg] || string("-m")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--model must be succeeded by a value");
+        ifstream fin(argv[arg]);
+        stringstream networkss;
+        networkss << fin.rdbuf();
+        network=networkss.str();
+        fin.close();
       }
       else if (string("--network")==argv[arg] || string("-n")==argv[arg])
       { ++arg;

@@ -2,6 +2,7 @@
 #include <slowml/shallowmodel.hpp>
 #include <slowml/wrapperdata.hpp>
 #include <dpl/parsetree.hpp>
+#include <tuple>
 
 class Network : public Model<std::vector<double> > // {{{
 { public:
@@ -25,9 +26,15 @@ class Network : public Model<std::vector<double> > // {{{
     size_t InputSize() const { return myInputSize; }
     size_t LayerSize(size_t layer) const { return myNodes.at(layer).size(); }
     size_t Layers() const { return myNodes.size(); }
-    size_t CountParameters() const;
-    double GetParameter(size_t i) const;
-    void SetParameter(size_t i, double val);
+    size_t CountParameters() const // {{{
+    { return myPmap.size();
+    } // }}}
+    double GetParameter(size_t i) const // {{{
+    { return myNodes[std::get<0>(myPmap[i])][std::get<1>(myPmap[i])].second->GetParameter(std::get<2>(myPmap[i]));
+    } // }}}
+    void SetParameter(size_t i, double val) // {{{
+    { myNodes[std::get<0>(myPmap[i])][std::get<1>(myPmap[i])].second->SetParameter(std::get<2>(myPmap[i]),val);
+    } // }}}
 
     void SaveParameters(std::ostream &dest, bool saveSize=true) const;
     void LoadParameters(std::istream &src, bool loadSize=true);
@@ -41,6 +48,7 @@ class Network : public Model<std::vector<double> > // {{{
 
   private:
     std::vector<std::vector<Node> > myNodes;
+    std::vector<std::tuple<size_t,size_t,size_t> > myPmap;
     //std::vector<std::pair<std::string,std::pair<size_t,size_t> > > myOutputs;
     size_t myInputSize;
 }; // }}}
