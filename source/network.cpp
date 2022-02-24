@@ -169,21 +169,18 @@ struct SumCostArg // {{{
   const GuidedData<double,vector<double>> &instances;
   size_t instance_min;
   size_t instance_max;
-  double lambda;
   double result;
 }; // }}}
-
 void SumCosts(SumCostArg *arg) // {{{
-{ cout << "SumCost from " << flush << arg->instance_min << " to " << arg->instance_max << endl;
+{ //cout << "SumCost from " << flush << arg->instance_min << " to " << arg->instance_max << endl;
   arg->result=0;
   for (size_t i=arg->instance_min; i<arg->instance_max; ++i)
     arg->result += arg->net->LogDistance(arg->net->Eval(arg->instances,i),arg->instances.GetResult(i));
 } // }}}
-
 double Network::Cost(const GuidedData<double,vector<double>> &instances, double lambda) // {{{
 { double cost=0;
   size_t cores=std::thread::hardware_concurrency();
-  cout << "Network::Cost: Debug - Number of cores: " << cores << endl;
+  //cout << "Network::Cost: Debug - Number of cores: " << cores << endl;
   vector<SumCostArg*> args;
   vector<thread> threads;
   // Start threads
@@ -214,178 +211,66 @@ double Network::Cost(const GuidedData<double,vector<double>> &instances, double 
         cost +=lambda*pow(myNodes[layer][node].second->GetParameter(param),2.0)/(2.0*instances.Height());
   return cost;
 } // }}}
+
 inline double sigmoid_deriv(double val) // {{{
 { return val*(1.0-val);
 } // }}}
-//std::vector<double> Network::SumDelta(SumDeltaArg *arg) // {{{
-//{ cout << "SumDelta from " << flush << arg->instance_min << " to " << arg->instance_max << endl;
-//  vector<double> flat_delta(CountParameters(),0.0);
-//  for (size_t pos=arg->instance_min; pos<arg->instance_max; ++pos)
-//  { vector< vector<double> > signals;
-//    // Calculate signals - myNodes[l][n] outputs signals[l+1][n+1]
-//    signals.push_back(vector<double>(instances.Width()));
-//    for (size_t i=0; i<arg->instances.Width(); ++i)
-//      signals[0][i]=arg->instances.GetValue(pos,i);
-//    for (size_t layer=0; layer<myNodes.size(); ++layer)
-//    { signals.push_back(vector<double>());
-//      signals[layer+1].push_back(1.0);
-//      for (size_t node=0; node<myNodes[layer].size(); ++node)
-//      { Node &n(myNodes[layer][node]);
-//        WrapperData<double> signals_data(signals[layer].size(),1,n.first,&signals[layer]); //.SetData(&(signals[layer]),signals[layer].size(),1);
-//        signals[layer+1].push_back(n.second->Eval(signals_data,0));
-//      }
-//    }
-//
-//    //// Debug: signals {{{
-//    //cout << "Network::Delta signals" << endl;
-//    //for (size_t layer=0; layer<signals.size(); ++layer)
-//    //{ cout << "layer " << layer << ": ";
-//    //  for (size_t node=0; node<signals[layer].size(); ++node)
-//    //  { if (node>0)
-//    //      cout << ", ";
-//    //    cout << signals[layer][node];
-//    //  }
-//    //  cout << endl;
-//    //} // }}}
-//
-//    // Calculate delta - myNodes[l][n] has error delta[l][n+1]
-//    vector< vector<double> > delta;
-//    while (delta.size()<myNodes.size())
-//      delta.push_back(vector<double>(myNodes[delta.size()].size()+1,0.0));
-//    
-//    // Compute delta for the last layer
-//    for (size_t i=0; i+1<delta[delta.size()-1].size(); ++i)
-//    { //cout << "Result: " << instances.GetResult(pos)[i] << endl;
-//      delta[delta.size()-1][i+1]=signals[signals.size()-1][i+1]-instances.GetResult(pos)[i];
-//    }
-//    // Backpropagate delta
-//    for (int layer=delta.size()-2; layer>=0; --layer)
-//    { //Computer delata[layer] from delta[layer+1], signals[layer] and parameters
-//      // delta[l]=Theta[l]'*delta[l+1] . signals(l) . (1-signals(l))
-//      for (size_t node=0; node<myNodes[layer+1].size(); ++node)
-//      { Node &n(myNodes[layer+1][node]);
-//        WrapperData<double> delta_data(delta[layer].size(),1,n.first,&delta[layer]); //.SetData(&(delta[layer]),delta[layer].size(),1);
-//        for (size_t param=0; param<myNodes[layer+1][node].second->CountParameters(); ++param)
-//          delta_data.SetValue(0,param,delta_data.GetValue(0,param)+n.second->GetParameter(param)*delta[layer+1][node+1]);
-//      }
-//      // Multiply by signals(l) * (1-signals(l))
-//      for (size_t node=0; node<delta[layer].size(); ++node)
-//        delta[layer][node]=delta[layer][node]*sigmoid_deriv(signals[layer+1][node]);
-//    }
-//
-//    //// Debug delta {{{
-//    //cout << "Network::Delta delta" << endl;
-//    //for (size_t layer=0; layer<delta.size(); ++layer)
-//    //{ cout << "layer " << layer << ": ";
-//    //  for (size_t node=0; node<delta[layer].size(); ++node)
-//    //  { if (node>0)
-//    //      cout << ", ";
-//    //    cout << delta[layer][node];
-//    //  }
-//    //  cout << endl;
-//    //} // }}}
-//
-//    // Update flat_delta from delta
-//    size_t dest=0;
-//    for (size_t layer=0; layer<myNodes.size(); ++layer)
-//    { for (size_t node=0; node<myNodes[layer].size(); ++node)
-//      { Node &n(myNodes[layer][node]);
-//        WrapperData<double> signals_data(signals[layer].size(),1,n.first,&signals[layer]); //.SetData(&(signals[layer]),signals[layer].size(),1);
-//        vector<double> d(n.second->CountParameters(),0.0);
-//        // Calculate delta increment to d
-//        n.second->AddDelta(signals_data,0,d,delta[layer][node+1]);
-//        // Update delta from d
-//        for (size_t i=0; i<d.size(); ++i)
-//          flat_delta[dest++]+=d[i];
-//      }
-//    }
-//  }
-//
-//  // flat_delta = flat_delta/m
-//  for (size_t i=0; i<flat_delta.size(); ++i)
-//  { flat_delta[i]=flat_delta[i]/instances.Height();
-//  }
-//
-//  // Add regularization
-//  size_t dest=0;
-//  for (size_t layer=0; layer<myNodes.size(); ++layer)
-//  { for (size_t node=0; node<myNodes[layer].size(); ++node)
-//    { Node &n(myNodes[layer][node]);
-//      // Update flat_delta regularization 
-//      for (size_t i=0; i<n.second->CountParameters(); ++i)
-//      { if (i>0)
-//          flat_delta[dest]+=lambda*n.second->GetParameter(i)/instances.Height();
-//        ++dest;
-//      }
-//    }
-//  }
-//
-//  return flat_delta;
-//} // }}}
-std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &instances, double lambda) // {{{
-{ vector<double> flat_delta(CountParameters(),0.0);
-  for (size_t pos=0; pos<instances.Height(); ++pos)
-  { 
-    //// Debug: parameters {{{
-    //cout << "Network::Delta parameters" << endl;
-    //for (size_t layer=0; layer<myNodes.size(); ++layer)
-    //{ cout << "layer " << layer << ": ";
-    //  for (size_t node=0; node<myNodes[layer].size(); ++node)
-    //  { if (node>0)
-    //      cout << "; ";
-    //    for (size_t i=0; i<myNodes[layer][node].second->CountParameters(); ++i)
-    //    { if (i>0)
-    //        cout << ",";
-    //      cout << myNodes[layer][node].second->GetParameter(i);
-    //    }
-    //  }
-    //  cout << endl;
-    //} // }}}
-    vector< vector<double> > signals;
+
+struct SumDeltaArg // {{{
+{ SumDeltaArg(Network *net,
+             const GuidedData<double,vector<double>> &instances,
+             size_t instance_min,
+             size_t instance_max)
+  : net(net)
+  , instances(instances)
+  , instance_min(instance_min)
+  , instance_max(instance_max)
+  {
+  }
+
+  Network *net;
+  const GuidedData<double,vector<double>> &instances;
+  size_t instance_min;
+  size_t instance_max;
+  vector<double> result;
+}; // }}}
+void SumDelta(SumDeltaArg *arg) // {{{
+{ //cout << "SumDelta from " << flush << arg->instance_min << " to " << arg->instance_max << endl;
+  arg->result=vector<double>(arg->net->CountParameters(),0.0);
+  for (size_t pos=arg->instance_min; pos<arg->instance_max; ++pos)
+  { vector< vector<double> > signals;
     // Calculate signals - myNodes[l][n] outputs signals[l+1][n+1]
-    signals.push_back(vector<double>(instances.Width()));
-    for (size_t i=0; i<instances.Width(); ++i)
-      signals[0][i]=instances.GetValue(pos,i);
-    for (size_t layer=0; layer<myNodes.size(); ++layer)
+    signals.push_back(vector<double>(arg->instances.Width()));
+    for (size_t i=0; i<arg->instances.Width(); ++i)
+      signals[0][i]=arg->instances.GetValue(pos,i);
+    for (size_t layer=0; layer<arg->net->Nodes().size(); ++layer)
     { signals.push_back(vector<double>());
       signals[layer+1].push_back(1.0);
-      for (size_t node=0; node<myNodes[layer].size(); ++node)
-      { Node &n(myNodes[layer][node]);
+      for (size_t node=0; node<arg->net->Nodes()[layer].size(); ++node)
+      { Network::Node &n(arg->net->Nodes()[layer][node]);
         WrapperData<double> signals_data(signals[layer].size(),1,n.first,&signals[layer]); //.SetData(&(signals[layer]),signals[layer].size(),1);
         signals[layer+1].push_back(n.second->Eval(signals_data,0));
       }
     }
 
-    //// Debug: signals {{{
-    //cout << "Network::Delta signals" << endl;
-    //for (size_t layer=0; layer<signals.size(); ++layer)
-    //{ cout << "layer " << layer << ": ";
-    //  for (size_t node=0; node<signals[layer].size(); ++node)
-    //  { if (node>0)
-    //      cout << ", ";
-    //    cout << signals[layer][node];
-    //  }
-    //  cout << endl;
-    //} // }}}
-
     // Calculate delta - myNodes[l][n] has error delta[l][n+1]
     vector< vector<double> > delta;
-    while (delta.size()<myNodes.size())
-      delta.push_back(vector<double>(myNodes[delta.size()].size()+1,0.0));
+    while (delta.size()<arg->net->Nodes().size())
+      delta.push_back(vector<double>(arg->net->Nodes()[delta.size()].size()+1,0.0));
     
     // Compute delta for the last layer
     for (size_t i=0; i+1<delta[delta.size()-1].size(); ++i)
     { //cout << "Result: " << instances.GetResult(pos)[i] << endl;
-      delta[delta.size()-1][i+1]=signals[signals.size()-1][i+1]-instances.GetResult(pos)[i];
+      delta[delta.size()-1][i+1]=signals[signals.size()-1][i+1]-arg->instances.GetResult(pos)[i];
     }
     // Backpropagate delta
     for (int layer=delta.size()-2; layer>=0; --layer)
     { //Computer delata[layer] from delta[layer+1], signals[layer] and parameters
       // delta[l]=Theta[l]'*delta[l+1] . signals(l) . (1-signals(l))
-      for (size_t node=0; node<myNodes[layer+1].size(); ++node)
-      { Node &n(myNodes[layer+1][node]);
+      for (size_t node=0; node<arg->net->Nodes()[layer+1].size(); ++node)
+      { Network::Node &n(arg->net->Nodes()[layer+1][node]);
         WrapperData<double> delta_data(delta[layer].size(),1,n.first,&delta[layer]); //.SetData(&(delta[layer]),delta[layer].size(),1);
-        for (size_t param=0; param<myNodes[layer+1][node].second->CountParameters(); ++param)
+        for (size_t param=0; param<arg->net->Nodes()[layer+1][node].second->CountParameters(); ++param)
           delta_data.SetValue(0,param,delta_data.GetValue(0,param)+n.second->GetParameter(param)*delta[layer+1][node+1]);
       }
       // Multiply by signals(l) * (1-signals(l))
@@ -393,33 +278,46 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
         delta[layer][node]=delta[layer][node]*sigmoid_deriv(signals[layer+1][node]);
     }
 
-    //// Debug delta {{{
-    //cout << "Network::Delta delta" << endl;
-    //for (size_t layer=0; layer<delta.size(); ++layer)
-    //{ cout << "layer " << layer << ": ";
-    //  for (size_t node=0; node<delta[layer].size(); ++node)
-    //  { if (node>0)
-    //      cout << ", ";
-    //    cout << delta[layer][node];
-    //  }
-    //  cout << endl;
-    //} // }}}
-
     // Update flat_delta from delta
     size_t dest=0;
-    for (size_t layer=0; layer<myNodes.size(); ++layer)
-    { for (size_t node=0; node<myNodes[layer].size(); ++node)
-      { Node &n(myNodes[layer][node]);
+    for (size_t layer=0; layer<arg->net->Nodes().size(); ++layer)
+    { for (size_t node=0; node<arg->net->Nodes()[layer].size(); ++node)
+      { Network::Node &n(arg->net->Nodes()[layer][node]);
         WrapperData<double> signals_data(signals[layer].size(),1,n.first,&signals[layer]); //.SetData(&(signals[layer]),signals[layer].size(),1);
         vector<double> d(n.second->CountParameters(),0.0);
         // Calculate delta increment to d
         n.second->AddDelta(signals_data,0,d,delta[layer][node+1]);
         // Update delta from d
         for (size_t i=0; i<d.size(); ++i)
-          flat_delta[dest++]+=d[i];
+          arg->result[dest++]+=d[i];
       }
     }
   }
+  
+  return;
+} // }}}
+std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &instances, double lambda) // {{{
+{ vector<double> flat_delta(CountParameters(),0.0);
+
+  size_t cores=std::thread::hardware_concurrency();
+  //cout << "Network::Delta: Debug - Number of cores: " << cores << endl;
+  vector<SumDeltaArg*> args;
+  vector<thread> threads;
+  // Start threads
+  for (size_t core=0; core<cores; ++core)
+  { SumDeltaArg *arg=new SumDeltaArg(this,instances,instances.Height()*core/cores,instances.Height()*(core+1)/cores);
+    args.push_back(arg);
+    threads.push_back(thread(SumDelta,arg));
+  }
+  // Collect results
+  for (size_t core=0; core<cores; ++core)
+  { threads[core].join();
+    for (size_t i=0; i<CountParameters(); ++i)
+      flat_delta[i]+=args[core]->result[i];
+    delete args[core];
+  }
+
+  // Finalize collected results
 
   // flat_delta = flat_delta/m
   for (size_t i=0; i<flat_delta.size(); ++i)
