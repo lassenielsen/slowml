@@ -73,40 +73,15 @@ vector<double> IdVec(size_t length, size_t pos) // {{{
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is heavyml_train [--gd_repetitions|-gdr <int=50000>] [--gd_alphainv|-gda <double=100>] [--gd_lambda|-gdl <double=1>] [--model|-m <modelpath>] [--network|-n <network=\"#features->[3*[3*[all]],[#labels*[all]]]\">][--vectormap|-vm <map=\"X->X\">] [--output|-o <modelpath=./model.pars>] [--continue|-c] [--debug|-d] <datapath>");
+      throw string("Syntax is heavyml_cost [--gd_lambda|-gdl <double=1>] [--model|-m <modelpath>] [--network|-n <network=\"#features->[3*[3*[all]],[#labels*[all]]]\">] [--vectormap|-vm <map=\"X->X\">] <datapath>");
 
     string datapath="./data";
-    string modelfile="./model.pars";
     string network="#features->[3*[3*[all]],[#labels*[all]]]";
     string vectormap="X->X";
-    size_t gd_repetitions=50000;
-    double gd_alphainv=100;
     double gd_lambda=1;
-    bool option_debug=false;
-    bool option_continue=false;
 
     for (size_t arg=1; arg+1<argc; ++arg)
-    { if (string("--gd_repetitions")==argv[arg] || string("-gdr")==argv[arg])
-      { ++arg;
-        if (arg+1>=argc)
-          throw string("--gd_repetitions must be succeeded by a value");
-        stringstream ss;
-        ss << argv[arg];
-        ss >> gd_repetitions;
-        if (gd_repetitions==0)
-          throw string("--gd_repetitions must be succeeded by positive integer");
-      }
-      else if (string("--gd_alphainv")==argv[arg] || string("-gda")==argv[arg])
-      { ++arg;
-        if (arg+1>=argc)
-          throw string("--gd_alphainv must be succeeded by a value");
-        stringstream ss;
-        ss << argv[arg];
-        ss >> gd_alphainv;
-        if (gd_alphainv<0)
-          throw string("--gd_alphainv must be succeeded by a nonnegative value");
-      }
-      else if (string("--gd_lambda")==argv[arg] || string("-gdl")==argv[arg])
+    { if (string("--gd_lambda")==argv[arg] || string("-gdl")==argv[arg])
       { ++arg;
         if (arg+1>=argc)
           throw string("--gd_lambda must be succeeded by a value");
@@ -138,16 +113,6 @@ int main(int argc, char **argv)
           throw string("--vectormap must be succeeded by another arg");
         vectormap=argv[arg];
       }
-      else if (string("--output")==argv[arg] || string("-o")==argv[arg])
-      { ++arg;
-        if (arg+1>=argc)
-          throw string("--output must be succeeded by a value");
-        modelfile=argv[arg];
-      }
-      else if (string("--continue")==argv[arg] || string("-c")==argv[arg])
-        option_continue=true;
-      else if (string("--debug")==argv[arg] || string("-d")==argv[arg])
-        option_debug=true;
       else
         throw string("Unknown argument") + argv[arg];
     }
@@ -193,14 +158,8 @@ int main(int argc, char **argv)
     network_str="";
 
     GuidedVectorData<double,vector<double> > gdata(mapdata,truths);
-    cout << "Training " << model->CountParameters() << " parameters" << endl;
-    model->FitParameters(gdata,gd_alphainv,gd_lambda,gd_repetitions,option_debug);
-    cout << "Training parameters done" << endl;
-    cout << "Saving model parameters in " << modelfile << flush;
-    ofstream fout(modelfile);
-    model->SaveParameters(fout);
-    fout.close();
-    cout << " done." << endl;
+    double cost=model->Cost(gdata,gd_lambda);
+    cout << "Cost: " << cost << endl;
     delete vecmap;
     delete model;
   }

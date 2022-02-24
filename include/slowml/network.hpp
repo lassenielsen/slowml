@@ -6,7 +6,7 @@
 
 class Network : public Model<std::vector<double> > // {{{
 { public:
-    typedef std::pair<WrapperData<double>,ShallowModel<double>*> Node;
+    typedef std::pair<std::vector<size_t>,ShallowModel<double>*> Node;
 
     Network(size_t input_size); // TODO DSL FOR NETWORK DESIGN
     virtual ~Network();
@@ -46,6 +46,8 @@ class Network : public Model<std::vector<double> > // {{{
     static void ParseNode(Network &dest, size_t idx, const dpl::parsetree &tree);
     static void ParseInputs(size_t inputs, std::vector<size_t> &sources, std::vector<double> &weights, const dpl::parsetree &tree);
 
+    const std::vector<std::vector<Node> > &Nodes() const { return myNodes; }
+    std::vector<std::vector<Node> > &Nodes() { return myNodes; }
   private:
     std::vector<std::vector<Node> > myNodes;
     std::vector<std::tuple<size_t,size_t,size_t> > myPmap;

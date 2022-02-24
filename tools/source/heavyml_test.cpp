@@ -120,7 +120,9 @@ int main(int argc, char **argv)
 
     // Load model
     Network *model=Network::Parse(network);
+    network.clear();
     cout << "Loaded model" << endl;
+  
     
     size_t successes=0;
     size_t errors=0;

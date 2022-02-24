@@ -1,7 +1,7 @@
 #=====================================================================#
-#                                HAPI                                #
+#                              SLOWML                                 #
 # Makefile.in                                                         #
-# This is the Makefile-template for the HAPI library.                #
+# This is the Makefile-template for the SlowML machine learning lib.  #
 # If the Makefile has been lost, copy this file to Makefile and type  #
 # make config. This will generate a Makefile that is configured for   #
 # your system. You can then use                                       #
@@ -25,7 +25,7 @@ compiler = g++
 ctags = ctags
 args = -std=c++11 -fPIC `sdl-config --cflags` $(opt) -I./include/
 #OS_MAClibs = 
-#OS_LINUXlibs = -ldpl -lz -lgmpxx -lgmp
+#OS_LINUXlibs = -ldpl -lpthread
 
 library_objects = \
   objects/linearregressionmodel.o \
