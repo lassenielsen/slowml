@@ -364,17 +364,17 @@ void Network::SaveParameters(ostream &dest, bool saveSize) const // {{{
   dest << "]";
   return;
 } // }}}
-double Network ReadDouble(istream &src) // {{{
+double Network::ReadDouble(istream &src) // {{{
 { double result;
   src >> result; // FIXME: This probably does not work!
   return result;
 } // }}}
-int Network ReadInt(istream &src) // {{{
+int Network::ReadInt(istream &src) // {{{
 { int result;
   src >> result; // FIXME: This probably does not work!
   return result;
 } // }}}
-string Network ReadString(istream &src, size_t size) // {{{
+string Network::ReadString(istream &src, size_t size) // {{{
 { char *buffer=new char(size+1);
   src.read(buffer,size);
   buffer[size]='\0';
@@ -391,75 +391,60 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
   }
   myNodes.clear();
 
-  myNodes.push_back(vector<Node>()); // Ensure first layer accessible
-  myNodes[0].push_back(Node(vector<size_t>(),new LogisticRegressionModel()); // Ensure first node accessible
   size_t myInputSize=ReadInt(src);
-  if (ReadString(src,5)!="->[[[")
-    throw string("Network::LoadParameters exprected '->[[['");
-  size_t layer=0;
-  size_t node=0;
-  size_t par=0;
+  if (ReadString(src,3)!="->[")
+    throw string("Network::LoadParameters exprected '->['");
   while (!src.eof())
-  { if (src.peek()==']') // exit node
-    { src.get(); // read ']'
-      if (src.peek()=="]") // exit layer
-      { src.get(); // read ']'
-        if (src.peek()==']') // exit network
-        { src.get(); // read ']'
-          return;
+  { // Parse Layers
+    if (src.peek()=='[')
+    { src.get(); // Read '['
+      myNodes.push_back(vector<Node>()); // Ensure layer is accessible
+      while (!src.eof()) // Parse Nodes {{{
+      { if (src.peek()=='[')
+        { src.get(); // Read '['
+          myNodes.back().push_back(Node(vector<size_t>(),new LogisticRegressionModel())); // Ensure node is accessible
+          while (!src.eof()) // Parse Parameters {{{
+          { // Read parameter
+            size_t idx=ReadInt(src);
+            if (src.get()!=':')
+              throw string("Network::LoadParameters expected ':'");
+            double weight=ReadDouble(src);
+            myNodes.back().back().first.push_back(idx);
+            myNodes.back().back().second->AddParameter(weight);
+
+            if (src.peek()==']') // exit node
+            { src.get(); // read ']'
+              if (src.peek()==',')
+              src.get(); // read ','
+              break;
+            }
+            else if (src.peek()==',')
+            { src.get();
+            }
+            else
+              throw string("Network::LoadParameters unknown parameter continuation: ")+string(1,src.get());
+          } // }}}
         }
-        else if (src.peek()==',')
-        { if (ReadString(src,3)!=",[[")
-            throw string("Network::LoadParameters exprected ',[['");
-          ++layer;
-          node=0;
-          par=0;
-          continue;
+        else if (src.peek()==']') // exit layer
+        { src.get(); // read ']'
+          if (src.peek()==',')
+          src.get(); // read ','
+          break;
         }
         else
-          throw string("Network::LoadParameters unknown layer start: ")+src.get();
-      }
-      else if (src.peek()==',')
-      { if (ReadString(src,2)!=",[")
-          throw string("Network::LoadParameters exprected ',['");
-        ++node;
-        par=0;
-        continue;
-      }
-      else
-        throw string("Network::LoadParameters unknown node start: ")+src.get();
+          throw string("Network::LoadParameters unknown node continuation: ")+string(1,src.get());
+      } // }}}
     }
-    else // Read parameter
-    { size_t idx=ReadInt(src);
-      if (ReadString(src,1)!=":")
-        throw string("Network::LoadParameters expected ':'");
-      double weight=ReadDouble(src);
-      myNodes[
-  }
-        if (src.peek()==',')
-      { if (ReadString(src,2)==",[")
-          ++
-    if (ReadString(src,2)!=']
-  for (size_t layer=0; layer<myNodes.size(); ++layer)
-  { if (layer>0)
-      dest << ",";
-    dest << "[";
-    for (size_t node=0; node<myNodes[layer].size(); ++node)
-    { if (node>0)
-        dest << ",";
-      dest << "[";
-      for (size_t par=0; par<myNodes[layer][node].second->CountParameters(); ++par)
-      { if (par>0)
-          dest << ",";
-          dest << myNodes[layer][node].first[par] << ":" << std::fixed << myNodes[layer][node].second->GetParameter(par);
-      }
-      dest << "]";
+    else if (src.peek()==']') // exit network
+    { src.get(); // read ']'
+      return;
     }
-    dest << "]" << endl;
+    else
+      throw string("Network::LoadParameters unknown layer continuation: ")+string(1,src.get());
   }
-  dest << "]";
-  return;
+  cerr << "Network::LoadParameters::Unexpected end of model, partial model loaded" << endl;
 } // }}}
+
 Network *Network::Parse(const std::string &networkstr) // {{{
 { dpl::SlrParser parser("network");
   parser.Load(std::string((char*)bnf_network_bnf,bnf_network_bnf_len));

@@ -37,6 +37,10 @@ class Network : public Model<std::vector<double> > // {{{
     } // }}}
 
     void SaveParameters(std::ostream &dest, bool saveSize=true) const;
+
+    static double ReadDouble(istream &src);
+    static int ReadInt(istream &src);
+    static std::string ReadString(istream &src, size_t size);
     void LoadParameters(std::istream &src, bool loadSize=true);
 
     static Network *Parse(const std::string &network);
