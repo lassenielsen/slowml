@@ -82,17 +82,18 @@ int main(int argc, char **argv)
     string datapath="./data";
     string network="#features->[3*[3*[all]],[#labels*[all]]]";
     string vectormap="X->X";
+    Network *model=NULL;
 
     for (size_t arg=1; arg+1<argc; ++arg)
-    { if (string("--model")==argv[arg] || string("-m")==argv[arg])
+    { if ((string("--model")==argv[arg] || string("-m")==argv[arg]) && model==NULL)
       { ++arg;
         if (arg+1>=argc)
           throw string("--model must be succeeded by a value");
         ifstream fin(argv[arg]);
-        stringstream networkss;
-        networkss << fin.rdbuf();
-        network=networkss.str();
+        model=new Network(1);
+        model->LoadParameters(fin);
         fin.close();
+        cout << "Loaded model" << endl;
       }
       else if (string("--vectormap")==argv[arg] || string("-vm")==argv[arg])
       { ++arg;
@@ -119,10 +120,15 @@ int main(int argc, char **argv)
     cout << " done." << endl;
 
     // Load model
-    Network *model=Network::Parse(network);
+    if (model==NULL)
+    { model=Network::Parse(network);
+      cout << "Loaded model" << endl;
+    }
     network.clear();
-    cout << "Loaded model" << endl;
-  
+
+    cout << "Network: " << endl;
+    model->SaveParameters(cout);
+    cout << endl;
     
     size_t successes=0;
     size_t errors=0;

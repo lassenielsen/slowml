@@ -84,6 +84,7 @@ int main(int argc, char **argv)
     double gd_lambda=1;
     bool option_debug=false;
     bool option_continue=false;
+    Network *model=NULL;
 
     for (size_t arg=1; arg+1<argc; ++arg)
     { if (string("--gd_repetitions")==argv[arg] || string("-gdr")==argv[arg])
@@ -116,15 +117,15 @@ int main(int argc, char **argv)
         if (gd_lambda<=0)
           throw string("--gd_lambda must be succeeded by positive number");
       }
-      else if (string("--model")==argv[arg] || string("-m")==argv[arg])
+      else if ((string("--model")==argv[arg] || string("-m")==argv[arg]) && model==NULL)
       { ++arg;
         if (arg+1>=argc)
           throw string("--model must be succeeded by a value");
         ifstream fin(argv[arg]);
-        stringstream networkss;
-        networkss << fin.rdbuf();
-        network=networkss.str();
+        model=new Network(1);
+        model->LoadParameters(fin);
         fin.close();
+        cout << "Loaded model" << endl;
       }
       else if (string("--network")==argv[arg] || string("-n")==argv[arg])
       { ++arg;
@@ -184,14 +185,16 @@ int main(int argc, char **argv)
     VectorMapData mapdata(&data,vecmap,vecmaparg);
 
     // Parse network
-    stringstream c_features;
-    c_features << mapdata.Width();
-    stringstream c_labels;
-    c_labels << labels.size();
-    string network_str=string_replace(string_replace(network,"#features",c_features.str()),"#labels",c_labels.str());
-    Network *model=Network::Parse(network_str);
-    network_str="";
-
+    if (model==NULL)
+    { stringstream c_features;
+      c_features << mapdata.Width();
+      stringstream c_labels;
+      c_labels << labels.size();
+      string network_str=string_replace(string_replace(network,"#features",c_features.str()),"#labels",c_labels.str());
+      model=Network::Parse(network_str);
+      network_str="";
+      cout << "Loaded model" << endl;
+    }
     GuidedVectorData<double,vector<double> > gdata(mapdata,truths);
     cout << "Training " << model->CountParameters() << " parameters" << endl;
     model->FitParameters(gdata,gd_alphainv,gd_lambda,gd_repetitions,option_debug);

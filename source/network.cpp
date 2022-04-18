@@ -392,6 +392,7 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
   myNodes.clear();
 
   size_t myInputSize=ReadInt(src);
+  cout << "myInputSize: " << myInputSize << endl;
   if (ReadString(src,3)!="->[")
     throw string("Network::LoadParameters exprected '->['");
   while (!src.eof())
@@ -437,6 +438,10 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
     }
     else if (src.peek()==']') // exit network
     { src.get(); // read ']'
+      return;
+    }
+    else if (src.peek()==' ' || src.peek()=='\n' || src.peek()=='\r')
+    { src.get(); // read whitespace
       return;
     }
     else
