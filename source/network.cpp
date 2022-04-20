@@ -391,8 +391,7 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
   }
   myNodes.clear();
 
-  size_t myInputSize=ReadInt(src);
-  cout << "myInputSize: " << myInputSize << endl;
+  myInputSize=ReadInt(src);
   if (ReadString(src,3)!="->[")
     throw string("Network::LoadParameters exprected '->['");
   while (!src.eof())
@@ -404,6 +403,7 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
       { if (src.peek()=='[')
         { src.get(); // Read '['
           myNodes.back().push_back(Node(vector<size_t>(),new LogisticRegressionModel())); // Ensure node is accessible
+          myNodes.back().back().second->Parameters().clear();
           while (!src.eof()) // Parse Parameters {{{
           { // Read parameter
             size_t idx=ReadInt(src);
@@ -428,8 +428,6 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
         }
         else if (src.peek()==']') // exit layer
         { src.get(); // read ']'
-          if (src.peek()==',')
-          src.get(); // read ','
           break;
         }
         else
@@ -440,9 +438,8 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
     { src.get(); // read ']'
       return;
     }
-    else if (src.peek()==' ' || src.peek()=='\n' || src.peek()=='\r')
+    else if (src.peek()==' ' || src.peek()=='\n' || src.peek()=='\r' || src.peek()==',')
     { src.get(); // read whitespace
-      return;
     }
     else
       throw string("Network::LoadParameters unknown layer continuation: ")+string(1,src.get());
