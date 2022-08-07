@@ -436,6 +436,8 @@ void Network::LoadParameters(istream &src, bool loadSize) // {{{
     }
     else if (src.peek()==']') // exit network
     { src.get(); // read ']'
+      // Initialize myPmap
+      InitPmap();
       return;
     }
     else if (src.peek()==' ' || src.peek()=='\n' || src.peek()=='\r' || src.peek()==',')

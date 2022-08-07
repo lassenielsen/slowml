@@ -78,15 +78,18 @@ size_t maxid(const vector<double> &vec) // {{{
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is usemodel [--model|-m <modelpath>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">] [--vectormap|-vm <map=\"X->X\">] [--slidingwindow-step|-sws <stepx=10>] [--slidingwindow-scalefactor|-swsf <factor=1.2>] [--slidingwindow-rotations|-swr <rotations=4>] <datapath>");
+      throw string("Syntax is obeseml_test [--model|-m <modelpath>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">] [--vectormap|-vm <map=\"X->X\">] [--image-width|-imgw <width=100>] [--slidingwindow-step|-sws <stepx=10>] [--slidingwindow-scalefactor|-swsf <factor=1.2>] [--slidingwindow-rotations|-swr <rotations=1>] [--slidingwindow-width|-sww <width=100>] [--model-width|-mw <width=100>] <datapath>");
 
     string datapath="./data";
     string network="#features->[3*[3*[all]],[#labels*[all]]]";
     string vectormap="X->X";
     Network *model=NULL;
+    size_t imgw=100;
     size_t sws=10;
     double swsf=1.2;
-    size_t swr=4;
+    size_t swr=1;
+    size_t sww=100;
+    //size_t modelwidth=100;
 
     for (size_t arg=1; arg+1<argc; ++arg)
     { if ((string("--model")==argv[arg] || string("-m")==argv[arg]) && model==NULL)
@@ -111,6 +114,14 @@ int main(int argc, char **argv)
           throw string("--network must be succeeded by another arg");
        network=argv[arg];
       }
+      else if (string("--image-width")==argv[arg] || string("-imgw")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--slidingwindow-step must be succeeded by another arg");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> imgw;
+      }
       else if (string("--slidingwindow-step")==argv[arg] || string("-sws")==argv[arg])
       { ++arg;
         if (arg+1>=argc)
@@ -134,11 +145,35 @@ int main(int argc, char **argv)
         stringstream ss;
         ss << argv[arg];
         ss >> swr;
-        if (swr!=1 && swr!=2 && swr!=4)
-        { cerr << "--slidingwindow-rotations must be one of 1, 2 or 4. Defaulting to 4." << endl;
-          swr=4;
+        if (swr!=1)
+        { cerr << "--slidingwindow-rotations must be 1. Defaulting to 1." << endl;
+          swr=1;
         }
       }
+      else if (string("--slidingwindow-width")==argv[arg] || string("-sww")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--slidingwindow-width must be succeeded by another arg");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> sww;
+        if (sww==0)
+        { cerr << "--slidingwindow-width must be positive. Defaulting to 100." << endl;
+          sww=100;
+        }
+      }
+      //else if (string("--model-width")==argv[arg] || string("-mw")==argv[arg])
+      //{ ++arg;
+      //  if (arg+1>=argc)
+      //    throw string("--model-width must be succeeded by another arg");
+      //  stringstream ss;
+      //  ss << argv[arg];
+      //  ss >> modelwidth;
+      //  if (modelwidth==0)
+      //  { cerr << "--model-width must be positive. Defaulting to 100." << endl;
+      //    sww=100;
+      //  }
+      //}
       else
         throw string("Unknown argument") + argv[arg];
     }
@@ -161,6 +196,11 @@ int main(int argc, char **argv)
     cout << "Network: " << endl;
     model->SaveParameters(cout);
     cout << endl;
+
+    size_t swh=model->InputSize()/sww;
+    cout << "Model Parameters: " << model->InputSize() << endl;
+    cout << "SWW: " << sww << endl;
+    cout << "SWH: " << swh << endl;
     
     size_t successes=0;
     size_t errors=0;
@@ -177,11 +217,48 @@ int main(int argc, char **argv)
         data.LoadRow(fin);
         fin.close();
         VectorMapData mapdata(&data,vecmap,vecmaparg);
+        // Perform sliding window
+        WindowWrapperData<double> swdata(imgw,0,0,sww,swh,sww,swh,&mapdata);
+        cout << "Window data width: " << swdata.Width() << endl;
         // Eval
-        vector<double> result=model->Eval(mapdata,0);
-        size_t max_label=maxid(result);
-        if (max_label!=label)
-        { cout << "Error on file: " << datapath << "/" <<labels[label] << "/" << *vfile << " (returned " << labels[max_label].substr(6) << "!=" << labels[label].substr(6) << ")" << endl;
+        double result=0;
+        size_t result_label=0;
+        double hit_scale=0.5;
+        size_t hit_x=0;
+        size_t hit_y=0;
+
+        for (double s=1.0/swsf/swsf/swsf/swsf; s*sww<swdata.ImgWidth() && s*swh<swdata.ImgHeight(); s=s*swsf)
+        { swdata.SetOffset(0,0);
+          swdata.SetScaled(sww*s,swh*s);
+          for (size_t x=0; x+s*sww<swdata.ImgWidth(); x+=sws)
+          { for (size_t y=0; y+s*swh<swdata.ImgHeight(); y+=sws)
+            { swdata.SetOffset(x,y);
+              cout << "Evaluating at (" << x << "," << y << ") scale " << s << endl;
+              if (x==300 && y==600)
+              { for (size_t y1=0; y1<swh; ++y1)
+                { for (size_t x1=0; x1<sww; ++x1)
+                    cout << int(9.9*swdata.GetValue(0,y1*sww+x1));
+                  cout << endl;
+                }
+              }
+              vector<double> r=model->Eval(swdata,0);
+              size_t max_label=maxid(r);
+              if (r[max_label]>result)
+              { result=r[max_label];
+                result_label=max_label;
+                hit_x=x;
+                hit_y=y;
+                hit_scale=s;
+              }
+            }
+          }
+        }
+        cout << "Result: " << result << endl;
+        cout << "Result Label: " << result_label << endl;
+        cout << "Hit position: " << hit_x << " " << hit_y << endl;
+        cout << "Hit scale: " << hit_scale << endl;
+        if (result_label!=label)
+        { cout << "Error on file: " << datapath << "/" <<labels[label] << "/" << *vfile << " (returned " << labels[result_label].substr(6) << "!=" << labels[label].substr(6) << ")" << endl;
           ++errors;
         }
         else

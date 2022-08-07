@@ -53,6 +53,16 @@ class Network : public Model<std::vector<double> > // {{{
     const std::vector<std::vector<Node> > &Nodes() const { return myNodes; }
     std::vector<std::vector<Node> > &Nodes() { return myNodes; }
   private:
+    void InitPmap() // {{{
+    { myPmap.clear();
+      for (size_t l=0; l<myNodes.size(); ++l)
+      { for (size_t n=0; n<myNodes[l].size(); ++n)
+        { for (size_t p=0; p<myNodes[l][n].second->CountParameters(); ++p)
+            myPmap.push_back(tuple<size_t,size_t,size_t>(l,n,p));
+        }
+      }
+    } // }}}
+
     std::vector<std::vector<Node> > myNodes;
     std::vector<std::tuple<size_t,size_t,size_t> > myPmap;
     //std::vector<std::pair<std::string,std::pair<size_t,size_t> > > myOutputs;
