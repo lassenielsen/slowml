@@ -78,7 +78,7 @@ size_t maxid(const vector<double> &vec) // {{{
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is obeseml_test [--model|-m <modelpath>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">] [--vectormap|-vm <map=\"X->X\">] [--image-width|-imgw <width=100>] [--slidingwindow-step|-sws <stepx=10>] [--slidingwindow-scalefactor|-swsf <factor=1.2>] [--slidingwindow-rotations|-swr <rotations=1>] [--slidingwindow-width|-sww <width=100>] [--model-width|-mw <width=100>] <datapath>");
+      throw string("Syntax is obeseml_test [--model|-m <modelpath>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">] [--vectormap|-vm <map=\"X->X\">] [--image-width|-imgw <width=100>] [--slidingwindow-step|-sws <stepx=10>] [--slidingwindow-maxscale|-swmaxs <scale=2>] [--slidingwindow-minscale|-swmins <scale=0.5>] [--slidingwindow-scalefactor|-swsf <factor=1.2>] [--slidingwindow-rotations|-swr <rotations=1>] [--slidingwindow-width|-sww <width=100>] [--model-width|-mw <width=100>] <datapath>");
 
     string datapath="./data";
     string network="#features->[3*[3*[all]],[#labels*[all]]]";
@@ -89,6 +89,9 @@ int main(int argc, char **argv)
     double swsf=1.2;
     size_t swr=1;
     size_t sww=100;
+    double min_scale=0.5;
+    double max_scale=2;
+
     //size_t modelwidth=100;
 
     for (size_t arg=1; arg+1<argc; ++arg)
@@ -129,6 +132,22 @@ int main(int argc, char **argv)
         stringstream ss;
         ss << argv[arg];
         ss >> sws;
+      }
+      else if (string("--slidingwindow-minscale")==argv[arg] || string("-swmins")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--slidingwindow-minscale must be succeeded by another arg");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> min_scale;
+      }
+      else if (string("--slidingwindow-maxscale")==argv[arg] || string("-swmaxs")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--slidingwindow-maxscale must be succeeded by another arg");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> max_scale;
       }
       else if (string("--slidingwindow-scalefactor")==argv[arg] || string("-swsf")==argv[arg])
       { ++arg;
@@ -227,22 +246,16 @@ int main(int argc, char **argv)
         size_t hit_x=0;
         size_t hit_y=0;
 
-        for (double s=1.0/swsf/swsf/swsf/swsf; s*sww<swdata.ImgWidth() && s*swh<swdata.ImgHeight(); s=s*swsf)
+        for (double s=max(min_scale,1.0/swsf/swsf/swsf/swsf); s<=max_scale && s*sww<swdata.ImgWidth() && s*swh<swdata.ImgHeight(); s=s*swsf)
         { swdata.SetOffset(0,0);
           swdata.SetScaled(sww*s,swh*s);
           for (size_t x=0; x+s*sww<swdata.ImgWidth(); x+=sws)
           { for (size_t y=0; y+s*swh<swdata.ImgHeight(); y+=sws)
             { swdata.SetOffset(x,y);
-              cout << "Evaluating at (" << x << "," << y << ") scale " << s << endl;
-              if (x==300 && y==600)
-              { for (size_t y1=0; y1<swh; ++y1)
-                { for (size_t x1=0; x1<sww; ++x1)
-                    cout << int(9.9*swdata.GetValue(0,y1*sww+x1));
-                  cout << endl;
-                }
-              }
+              cout << "Evaluating at (" << x << "," << y << ") scale " << s << flush;
               vector<double> r=model->Eval(swdata,0);
               size_t max_label=maxid(r);
+              cout << " to " << labels[max_label] << " with accuracy " << r[max_label] << endl;
               if (r[max_label]>result)
               { result=r[max_label];
                 result_label=max_label;
@@ -255,8 +268,19 @@ int main(int argc, char **argv)
         }
         cout << "Result: " << result << endl;
         cout << "Result Label: " << result_label << endl;
+        cout << "Result Label Name: " << labels[result_label] << endl;
         cout << "Hit position: " << hit_x << " " << hit_y << endl;
         cout << "Hit scale: " << hit_scale << endl;
+        cout << "Hit section: " << endl;
+        swdata.SetOffset(0,0);
+        swdata.SetScaled(sww*hit_scale,swh*hit_scale);
+        swdata.SetOffset(hit_x,hit_y);
+        { for (size_t y1=0; y1<swh; ++y1)
+          { for (size_t x1=0; x1<sww; ++x1)
+              cout << int(9.9*swdata.GetValue(0,y1*sww+x1+1));
+            cout << endl;
+          }
+        }
         if (result_label!=label)
         { cout << "Error on file: " << datapath << "/" <<labels[label] << "/" << *vfile << " (returned " << labels[result_label].substr(6) << "!=" << labels[label].substr(6) << ")" << endl;
           ++errors;

@@ -106,7 +106,7 @@ template <class T> T WindowWrapperData<T>::GetValue(size_t instance, size_t i) c
       else
         res+=myInstancesPtr->GetValue(instance,idx);
     }
-  return res;
+  return res/((max_sy-min_sy+1)*(max_sx-min_sx+1));
 } // }}}
 
 template<class T> void WindowWrapperData<T>::SetValue(size_t instance, size_t i, const T &val) // {{{
