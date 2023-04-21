@@ -78,12 +78,12 @@ size_t maxid(const vector<double> &vec) // {{{
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is obeseml_test [--model|-m <modelpath>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">] [--vectormap|-vm <map=\"X->X\">] [--image-width|-imgw <width=100>] [--slidingwindow-step|-sws <stepx=10>] [--slidingwindow-maxscale|-swmaxs <scale=2>] [--slidingwindow-minscale|-swmins <scale=0.5>] [--slidingwindow-scalefactor|-swsf <factor=1.2>] [--slidingwindow-rotations|-swr <rotations=1>] [--slidingwindow-width|-sww <width=100>] [--model-width|-mw <width=100>] <datapath>");
+      throw string("Syntax is obeseml_test [--detect-model|-dm <modelpath>] [--detect-label|-dl <label=0>] [--model|-m <modelpath>] [--vectormap|-vm <map=\"X->X\">] [--image-width|-imgw <width=100>] [--slidingwindow-step|-sws <stepx=10>] [--slidingwindow-maxscale|-swmaxs <scale=2>] [--slidingwindow-minscale|-swmins <scale=0.5>] [--slidingwindow-scalefactor|-swsf <factor=1.2>] [--slidingwindow-rotations|-swr <rotations=1>] [--slidingwindow-width|-sww <width=100>] <datapath>");
 
     string datapath="./data";
-    string network="#features->[3*[3*[all]],[#labels*[all]]]";
     string vectormap="X->X";
     Network *model=NULL;
+    Network *detectmodel=NULL;
     size_t imgw=100;
     size_t sws=10;
     double swsf=1.2;
@@ -91,11 +91,29 @@ int main(int argc, char **argv)
     size_t sww=100;
     double min_scale=0.5;
     double max_scale=2;
-
+    size_t detect_label=0;
     //size_t modelwidth=100;
 
     for (size_t arg=1; arg+1<argc; ++arg)
-    { if ((string("--model")==argv[arg] || string("-m")==argv[arg]) && model==NULL)
+    { if ((string("--detect-model")==argv[arg] || string("-dm")==argv[arg]) && model==NULL)
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--detect-model must be succeeded by a value");
+        ifstream fin(argv[arg]);
+        detectmodel=new Network(1);
+        detectmodelmodel->LoadParameters(fin);
+        fin.close();
+        cout << "Loaded detection-model" << endl;
+      }
+      else if (string("--detect-label")==argv[arg] || string("-dl")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--detect-label must be succeeded by another arg");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> detect_label;
+      }
+      else if ((string("--model")==argv[arg] || string("-m")==argv[arg]) && model==NULL)
       { ++arg;
         if (arg+1>=argc)
           throw string("--model must be succeeded by a value");
@@ -110,12 +128,6 @@ int main(int argc, char **argv)
         if (arg+1>=argc)
           throw string("--vectormap must be succeeded by another arg");
         vectormap=argv[arg];
-      }
-      else if (string("--network")==argv[arg] || string("-n")==argv[arg])
-      { ++arg;
-        if (arg+1>=argc)
-          throw string("--network must be succeeded by another arg");
-       network=argv[arg];
       }
       else if (string("--image-width")==argv[arg] || string("-imgw")==argv[arg])
       { ++arg;
@@ -181,18 +193,6 @@ int main(int argc, char **argv)
           sww=100;
         }
       }
-      //else if (string("--model-width")==argv[arg] || string("-mw")==argv[arg])
-      //{ ++arg;
-      //  if (arg+1>=argc)
-      //    throw string("--model-width must be succeeded by another arg");
-      //  stringstream ss;
-      //  ss << argv[arg];
-      //  ss >> modelwidth;
-      //  if (modelwidth==0)
-      //  { cerr << "--model-width must be positive. Defaulting to 100." << endl;
-      //    sww=100;
-      //  }
-      //}
       else
         throw string("Unknown argument") + argv[arg];
     }
@@ -204,13 +204,6 @@ int main(int argc, char **argv)
     string vecmaparg;
     VectorMap *vecmap=VectorMap::Parse(vectormap,vecmaparg);
     cout << " done." << endl;
-
-    // Load model
-    if (model==NULL)
-    { model=Network::Parse(network);
-      cout << "Loaded model" << endl;
-    }
-    network.clear();
 
     cout << "Network: " << endl;
     model->SaveParameters(cout);
@@ -256,6 +249,7 @@ int main(int argc, char **argv)
               vector<double> r=model->Eval(swdata,0);
               size_t max_label=maxid(r);
               cout << " to " << labels[max_label] << " with accuracy " << r[max_label] << endl;
+              ... eval model if detect_model evaluates to detect_label!
               if (r[max_label]>result)
               { result=r[max_label];
                 result_label=max_label;
@@ -292,6 +286,10 @@ int main(int argc, char **argv)
       }
     }
     delete vecmap;
+    if (model)
+      delete model;
+    if (detectmodel)
+      delete detectmodel;
     cout << "Total " << successes << " succeeded (" << (100.0 * successes) / (successes+errors) << "%)" << endl
          << "Total " << errors << " failed (" << (100.0 * errors) / (successes+errors) << "%)" << endl;
   }
