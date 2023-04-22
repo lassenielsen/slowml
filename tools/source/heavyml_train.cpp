@@ -203,6 +203,7 @@ int main(int argc, char **argv)
             }
             else
             { string tstr=fname.substr(startpos+1,endpos);
+              endpos=startpos-1;
               stringstream ss;
               ss << tstr;
               double tval;

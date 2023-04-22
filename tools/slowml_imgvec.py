@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import tkinter
 from PIL import Image
@@ -17,7 +17,7 @@ arg=3
 vectorwidth=img.width
 vectorheight=img.height
 vectormode='gs'
-pixelbytes=8
+pixelvals=1
 
 while arg<len(sys.argv):
   if sys.argv[arg]=='--vectorwidth' or sys.argv[arg]=='-vw':
@@ -28,19 +28,19 @@ while arg<len(sys.argv):
     vectorheight=int(sys.argv[arg])
   elif sys.argv[arg]=='--greyscale' or sys.argv[arg]=='-gs':
     vectormode='gs'
-    pixelbytes=4
+    pixelvals=1
   elif sys.argv[arg]=='--rgb' or sys.argv[arg]=='-rgb':
     vectormode='rgb'
-    pixelbytes=8*3
+    pixelvals=3
   elif sys.argv[arg]=='--red' or sys.argv[arg]=='-r':
     vectormode='r'
-    pixelbytes=8
+    pixelvals=1
   elif sys.argv[arg]=='--green' or sys.argv[arg]=='-g':
     vectormode='g'
-    pixelbytes=8
+    pixelvals=1
   elif sys.argv[arg]=='--blue' or sys.argv[arg]=='-b':
     vectormode='b'
-    pixelbytes=8
+    pixelvals=1
   else:
     print('Unknown option: '+sys.argv[arg])
     quit()
@@ -57,7 +57,7 @@ img=img.resize((vectorwidth,vectorheight))
 #tkinter.mainloop()
 
 vecfile = open(sys.argv[2],'wb')
-vecfile.write(struct.pack('Q',vectorwidth*vectorheight*pixelbytes+1))
+vecfile.write(struct.pack('Q',vectorwidth*vectorheight*pixelvals+1))
 vecfile.write(struct.pack('d',1.0))
 for y in range(vectorheight):
   for x in range(vectorwidth):

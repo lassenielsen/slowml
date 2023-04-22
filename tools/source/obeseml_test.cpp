@@ -101,7 +101,7 @@ int main(int argc, char **argv)
           throw string("--detect-model must be succeeded by a value");
         ifstream fin(argv[arg]);
         detectmodel=new Network(1);
-        detectmodelmodel->LoadParameters(fin);
+        detectmodel->LoadParameters(fin);
         fin.close();
         cout << "Loaded detection-model" << endl;
       }
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
               vector<double> r=model->Eval(swdata,0);
               size_t max_label=maxid(r);
               cout << " to " << labels[max_label] << " with accuracy " << r[max_label] << endl;
-              ... eval model if detect_model evaluates to detect_label!
+              // FIXME: ... eval model if detect_model evaluates to detect_label!
               if (r[max_label]>result)
               { result=r[max_label];
                 result_label=max_label;
