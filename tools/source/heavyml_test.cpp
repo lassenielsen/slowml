@@ -77,11 +77,12 @@ size_t maxid(const vector<double> &vec) // {{{
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is usemodel [--model|-m <modelpath>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">] [--vectormap|-vm <map=\"X->X\">] <datapath>");
+      throw string("Syntax is usemodel [--model|-m <modelpath>] [--network|-n <network=\"100->[3*[3*[all]],[[all->yes],[all->no]]]\">] [--vectormap|-vm <map=\"X->X\">] [--filename_truths|-fnt <int=0>] <datapath>");
 
     string datapath="./data";
     string network="#features->[3*[3*[all]],[#labels*[all]]]";
     string vectormap="X->X";
+    size_t filename_truths=0;
     Network *model=NULL;
 
     for (size_t arg=1; arg+1<argc; ++arg)
@@ -107,6 +108,14 @@ int main(int argc, char **argv)
           throw string("--network must be succeeded by another arg");
        network=argv[arg];
       }
+      else if (string("--filename_truths")==argv[arg] || string("-fnt")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--filename_results must be succeeded by an integer");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> filename_truths;
+      }
       else
         throw string("Unknown argument") + argv[arg];
     }
@@ -126,9 +135,9 @@ int main(int argc, char **argv)
     }
     network.clear();
 
-    cout << "Network: " << endl;
-    model->SaveParameters(cout);
-    cout << endl;
+    //cout << "Network: " << endl;
+    //model->SaveParameters(cout);
+    //cout << endl;
     
     size_t successes=0;
     size_t errors=0;
@@ -142,8 +151,36 @@ int main(int argc, char **argv)
       for (auto vfile=vfiles.begin(); vfile!=vfiles.end(); ++vfile)
       { ifstream fin(datapath+"/"+labels[label]+"/"+*vfile);
         VectorData<double> data(vector<double>(),0,0);
+        vector<vector<double>> truths;
         data.LoadRow(fin);
         fin.close();
+        // Add filename truths
+        string fname=*vfile;
+        size_t endpos=fname.rfind('.');
+        if (endpos==string::npos && filename_truths>0)
+        { cerr << "Ill formatted filename " << fname << endl;
+          for (size_t t=0; t<filename_truths; ++t)
+            truth.push_back(0.0);
+        }
+        else
+        { for (size_t t=0; t<filename_truths; ++t)
+          { size_t startpos=fname.rfind('_',endpos);
+            if (startpos==string::npos)
+            { cerr << "Ill formatted filename truth " << fname << endl;
+              truth.push_back(0.0);
+            }
+            else
+            { string tstr=fname.substr(startpos+1,endpos);
+              endpos=startpos-1;
+              stringstream ss;
+              ss << tstr;
+              double tval;
+              ss >> tval;
+              cout << "Filename " << fname << " tval " << tval << endl;
+              truth.push_back(tval);
+            }
+          }
+        }
         VectorMapData mapdata(&data,vecmap,vecmaparg);
         // Eval
         vector<double> result=model->Eval(mapdata,0);
