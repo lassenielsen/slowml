@@ -5,13 +5,16 @@
 #include <fstream>
 using namespace std;
 
+const string asciivals(" .,-+oxOX#@");
+
 int main(int argc, char **argv)
 { try
   { if (argc<2)
-      throw string("Syntax is slowml_printvec [--cols <int=0>] [--startindex <int=0>] [--vectormap|-vm <map=\"X->X\">] <filename>");
+      throw string("Syntax is slowml_printvec [--cols <int=0>] [--ascii] [--startindex <int=0>] [--vectormap|-vm <map=\"X->X\">] <filename>");
 
     size_t cols=0;
     size_t startindex=0;
+    string mode="int";
     string vectormap="X -> X";
     for (size_t arg=1; arg+1<argc; ++arg)
     { if (string("--cols")==argv[arg])
@@ -23,6 +26,9 @@ int main(int argc, char **argv)
         ss >> cols;
         if (cols<=0)
           throw string("--cols must be succeeded by a positive integer");
+      }
+      else if (string("--ascii")==argv[arg])
+      { mode="ascii";
       }
       else if (string("--startindex")==argv[arg])
       { ++arg;
@@ -55,7 +61,11 @@ int main(int argc, char **argv)
     VectorMap *vecmap=VectorMap::Parse(vectormap,vecmaparg);
     VectorMapData mapdata(&data,vecmap,vecmaparg);
     for (size_t i=0; i<mapdata.Width(); ++i)
-    { cout << (int)(mapdata.GetValue(0,i)*9.99);
+    { if (mode=="ascii")
+        cout << asciivals[(int)(mapdata.GetValue(0,i)*9.99)];
+      else
+        cout << (int)(mapdata.GetValue(0,i)*9.99);
+
       if (cols>0 && (i+startindex)%cols==0)
         cout << endl;
     }

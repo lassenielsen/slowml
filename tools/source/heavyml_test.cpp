@@ -4,6 +4,7 @@
 #include <fstream>
 #include <dirent.h>
 #include <stdio.h>
+#include <iomanip>
 #include <algorithm>
 
 using namespace std;
@@ -65,13 +66,24 @@ vector<double> IdVec(size_t length, size_t pos) // {{{
 
   return result;
 } // }}}
-size_t maxid(const vector<double> &vec) // {{{
+size_t maxid(const vector<double> &vec, size_t len) // {{{
 { size_t result=0;
-  for (size_t i=1; i<vec.size(); ++i)
+  for (size_t i=1; i<vec.size() && i<len; ++i)
   { if (vec[i]>vec[result])
       result=i;
   }
   return result;
+} // }}}
+std::string vectorstr(const std::vector<double> &vec) // {{{
+{ stringstream ss;
+  ss << "[";
+  for (size_t i=0; i<vec.size(); ++i)
+  { if (i>0)
+      ss << ", ";
+    ss << std::setprecision(4) << vec[i];
+  }
+  ss << "]";
+  return ss.str();
 } // }}}
 
 int main(int argc, char **argv)
@@ -151,46 +163,49 @@ int main(int argc, char **argv)
       for (auto vfile=vfiles.begin(); vfile!=vfiles.end(); ++vfile)
       { ifstream fin(datapath+"/"+labels[label]+"/"+*vfile);
         VectorData<double> data(vector<double>(),0,0);
-        vector<vector<double>> truths;
+        //vector<vector<double>> truths;
         data.LoadRow(fin);
         fin.close();
-        // Add filename truths
-        string fname=*vfile;
-        size_t endpos=fname.rfind('.');
-        if (endpos==string::npos && filename_truths>0)
-        { cerr << "Ill formatted filename " << fname << endl;
-          for (size_t t=0; t<filename_truths; ++t)
-            truth.push_back(0.0);
-        }
-        else
-        { for (size_t t=0; t<filename_truths; ++t)
-          { size_t startpos=fname.rfind('_',endpos);
-            if (startpos==string::npos)
-            { cerr << "Ill formatted filename truth " << fname << endl;
-              truth.push_back(0.0);
-            }
-            else
-            { string tstr=fname.substr(startpos+1,endpos);
-              endpos=startpos-1;
-              stringstream ss;
-              ss << tstr;
-              double tval;
-              ss >> tval;
-              cout << "Filename " << fname << " tval " << tval << endl;
-              truth.push_back(tval);
-            }
-          }
-        }
         VectorMapData mapdata(&data,vecmap,vecmaparg);
+
+        //vector<double> truth=IdVec(labels.size(),label);
+        //// Add filename truths
+        //string fname=*vfile;
+        //size_t endpos=fname.rfind('.');
+        //if (endpos==string::npos && filename_truths>0)
+        //{ cerr << "Ill formatted filename " << fname << endl;
+        //  for (size_t t=0; t<filename_truths; ++t)
+        //    truth.push_back(0.0);
+        //}
+        //else
+        //{ for (size_t t=0; t<filename_truths; ++t)
+        //  { size_t startpos=fname.rfind('_',endpos);
+        //    if (startpos==string::npos)
+        //    { cerr << "Ill formatted filename truth " << fname << endl;
+        //      truth.push_back(0.0);
+        //    }
+        //    else
+        //    { string tstr=fname.substr(startpos+1,endpos);
+        //      endpos=startpos-1;
+        //      stringstream ss;
+        //      ss << tstr;
+        //      double tval;
+        //      ss >> tval;
+        //      cout << "Filename " << fname << " tval " << tval << endl;
+        //      truth.push_back(tval);
+        //    }
+        //  }
+        //}
+        //truths.push_back(truth);
         // Eval
         vector<double> result=model->Eval(mapdata,0);
-        size_t max_label=maxid(result);
+        size_t max_label=maxid(result,labels.size());
         if (max_label!=label)
-        { cout << "Error on file: " << datapath << "/" <<labels[label] << "/" << *vfile << " (returned " << labels[max_label].substr(6) << "!=" << labels[label].substr(6) << ")" << endl;
+        { cout << "Error on file: " << datapath << "/" <<labels[label] << "/" << *vfile << " (returned " << labels[max_label].substr(6) << "!=" << labels[label].substr(6) << " with result " << vectorstr(result) << ")" << endl;
           ++errors;
         }
         else
-        { cout << "Success on file: " << datapath << "/" <<labels[label] << "/" << *vfile << endl;
+        { cout << "Success on file: " << datapath << "/" <<labels[label] << "/" << *vfile << " with result " << vectorstr(result) << endl;
           ++successes;
         }
       }

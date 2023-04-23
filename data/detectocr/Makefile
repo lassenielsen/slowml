@@ -1,5 +1,5 @@
 detect_1.heavy:
-	heavyml_train -gdr 1 -gda 100 -n "#features->[[300*[all]],[#labels*[all],4*[all]]]" -fnt 4 -o detect_1.heavy train/
+	heavyml_train -gdr 1 -gda 100 -n "#features->[[1000*[all]],[#labels*[all],4*[all]]]" -fnt 4 -o detect_1.heavy train/
 
 detect_100.heavy: detect_1.heavy
 	heavyml_train -gdr 99 -gda 0 -d -m detect_1.heavy -fnt 4 -o detect_100.heavy train/
