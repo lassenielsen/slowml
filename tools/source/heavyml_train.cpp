@@ -208,7 +208,7 @@ int main(int argc, char **argv)
               ss << tstr;
               double tval;
               ss >> tval;
-              cout << "Filename " << fname << " tval " << tval << endl;
+              //cout << "Filename " << fname << " tval " << tval << endl;
               truth.push_back(tval);
             }
           }

@@ -73,11 +73,12 @@ vector<double> IdVec(size_t length, size_t pos) // {{{
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is heavyml_cost [--gd_lambda|-gdl <double=1>] [--model|-m <modelpath>] [--network|-n <network=\"#features->[3*[3*[all]],[#labels*[all]]]\">] [--vectormap|-vm <map=\"X->X\">] <datapath>");
+      throw string("Syntax is heavyml_cost [--gd_lambda|-gdl <double=1>] [--model|-m <modelpath>] [--network|-n <network=\"#features->[3*[3*[all]],[#labels*[all]]]\">] [--filename_truths|-fnt <int=0>] [--vectormap|-vm <map=\"X->X\">] <datapath>");
 
     string datapath="./data";
     string network="#features->[3*[3*[all]],[#labels*[all]]]";
     string vectormap="X->X";
+    size_t filename_truths=0;
     double gd_lambda=1;
     Network *model=NULL;
 
@@ -114,6 +115,14 @@ int main(int argc, char **argv)
           throw string("--vectormap must be succeeded by another arg");
         vectormap=argv[arg];
       }
+      else if (string("--filename_truths")==argv[arg] || string("-fnt")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--filename_results must be succeeded by an integer");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> filename_truths;
+      }
       else
         throw string("Unknown argument") + argv[arg];
     }
@@ -141,7 +150,35 @@ int main(int argc, char **argv)
       { ifstream fin(datapath+"/"+labels[label]+"/"+*vfile);
         data.LoadRow(fin);
         fin.close();
-        truths.push_back(IdVec(labels.size(),label));
+        vector<double> truth=IdVec(labels.size(),label);
+        // Add filename truths
+        string fname=*vfile;
+        size_t endpos=fname.rfind('.');
+        if (endpos==string::npos && filename_truths>0)
+        { cerr << "Ill formatted filename " << fname << endl;
+          for (size_t t=0; t<filename_truths; ++t)
+            truth.push_back(0.0);
+        }
+        else
+        { for (size_t t=0; t<filename_truths; ++t)
+          { size_t startpos=fname.rfind('_',endpos);
+            if (startpos==string::npos)
+            { cerr << "Ill formatted filename truth " << fname << endl;
+              truth.push_back(0.0);
+            }
+            else
+            { string tstr=fname.substr(startpos+1,endpos);
+              endpos=startpos-1;
+              stringstream ss;
+              ss << tstr;
+              double tval;
+              ss >> tval;
+              //cout << "Filename " << fname << " tval " << tval << endl;
+              truth.push_back(tval);
+            }
+          }
+        }
+        truths.push_back(truth);
         ++count;
       }
       cout << ". Loaded " << count << " instances." << endl;
