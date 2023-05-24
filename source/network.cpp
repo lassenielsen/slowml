@@ -215,6 +215,15 @@ double Network::Cost(const GuidedData<double,vector<double>> &instances, double 
 inline double sigmoid_deriv(double val) // {{{
 { return val*(1.0-val);
 } // }}}
+inline double norm_sigmoid_deriv(double val) // {{{
+{ double s=sigmoid_deriv(val);
+  if (s<0.0)
+    return -1.0;
+  else if (s>0.0)
+    return 1.0;
+  else
+    return 0.0;
+} // }}}
 
 struct SumDeltaArg // {{{
 { SumDeltaArg(Network *net,
@@ -275,7 +284,7 @@ void SumDelta(SumDeltaArg *arg) // {{{
       }
       // Multiply by signals(l) * (1-signals(l))
       for (size_t node=0; node<delta[layer].size(); ++node)
-        delta[layer][node]=delta[layer][node]*sigmoid_deriv(signals[layer+1][node]);
+        delta[layer][node]=delta[layer][node]*norm_sigmoid_deriv(signals[layer+1][node]);
     }
 
     // Update flat_delta from delta

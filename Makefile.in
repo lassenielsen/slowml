@@ -81,7 +81,7 @@ include/$(name)/config.hpp:
 #OS_LINUX	@echo "#define OS_LINUX" >> include/$(name)/config.hpp
 	@echo "#endif" >> include/$(name)/config.hpp
 
-install: $(libname)$(libversion)
+install: $(libname)$(libversion) include/$(name)/vectormap_bnf.hpp include/$(name)/network_bnf.hpp
 	@echo "Copying library"
 	cp $(libname)$(libversion) /usr/lib/
 #OS_LINUX	ln -f -s /usr/lib/$(libname)$(libversion) /usr/lib/$(libname)
