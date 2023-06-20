@@ -284,7 +284,7 @@ void SumDelta(SumDeltaArg *arg) // {{{
       }
       // Multiply by signals(l) * (1-signals(l))
       for (size_t node=0; node<delta[layer].size(); ++node)
-        delta[layer][node]=delta[layer][node]*norm_sigmoid_deriv(signals[layer+1][node]);
+        delta[layer][node]=delta[layer][node]*sigmoid_deriv(signals[layer+1][node]);
     }
 
     // Update flat_delta from delta
