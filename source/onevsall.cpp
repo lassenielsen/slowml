@@ -42,11 +42,13 @@ double OneVsAll::Cost(const GuidedData<double,size_t> &instances, double lambda)
 } // }}}
 
 void OneVsAll::FitParameters(GuidedData<double,size_t> &instances, double &alpha_inv, double lambda, size_t repetitions, bool debug) // {{{
-{ for (size_t model=0; model<myModels.size(); ++model)
+{ double ainv;
+  for (size_t model=0; model<myModels.size(); ++model)
   { if (debug)
       cout << "OneVsAll: Fitting model " << model << endl;
     GuidedDataClassWrapper wrapper(&instances,model);
-    myModels[model].FitParameters(wrapper,alpha_inv,lambda,repetitions,debug);
+    ainv=alpha_inv;
+    myModels[model].FitParameters(wrapper,ainv,lambda,repetitions,debug);
   }
 } // }}}
 

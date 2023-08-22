@@ -1,12 +1,10 @@
-sources=$(notdir $(shell ls source/*.cpp))
-programs = $(sources:.cpp=)
-version = 2021
-compiler = g++
-opt = -O3
-args = -std=c++11
-libs = -lslowml -ldpl
+programs=$(shell ls src)
+version = 2023
 OS_AUTO = $(shell uname -s)
 COMMENT = _
+
+debug:
+	echo "Programs: $(programs)"
 
 default:
 	echo "Use: make config, make build, make install, make clean, and if you don't like it make uninstall."
@@ -37,10 +35,11 @@ endif
 endif
 endif
 
-build: $(programs)
+build: $(addprefix src/,$(programs))
+	chmod a+x $(addprefix src/,$(programs))
 
-install: $(programs)
-	cp $(programs) slowml_imgvec.py /usr/local/bin/
+install: $(addprefix src/,$(programs))
+	cp $(addprefix src/,$(programs)) /usr/local/bin/
 
 uninstall:
 	cd /usr/local/bin
@@ -50,15 +49,5 @@ uninstall:
 clean:
 	touch clean~
 	touch objects
-	touch $(programs)
 	rm *~
-	rm -Rf objects
-	rm $(programs)
 	cp Makefile.in Makefile
-
-objects/%.o: source/%.cpp
-	mkdir -p objects
-	$(compiler) -c source/$*.cpp $(args) $(opt) -o objects/$*.o
-
-%: objects/%.o
-	$(compiler) objects/$*.o -o $* $(args) $(opt) $(libs)

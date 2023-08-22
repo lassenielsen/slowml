@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-import tkinter
+#import tkinter
 from PIL import Image
 #from PIL import ImageTk, ImageDraw
 import sys
 import struct
+import random
 
 if len(sys.argv)<3:
-  print('Syntax: '+sys.argv[0]+' <image file>  <output vector> [--vectorwidth|-vw width] [--vectorheight|-vh height] [--greyscale|-gs | --rgb|-rgb | --red|-r | --blue|-b | --green|-g]')
+  print('Syntax: '+sys.argv[0]+' <image file>  <output vector> [--vectorwidth|-vw width] [--vectorheight|-vh height] [--greyscale|-gs | --rgb|-rgb | --red|-r | --blue|-b | --green|-g] [--random-crop|-rc]')
   quit()
 
 img=Image.open(sys.argv[1])
@@ -41,6 +42,10 @@ while arg<len(sys.argv):
   elif sys.argv[arg]=='--blue' or sys.argv[arg]=='-b':
     vectormode='b'
     pixelvals=1
+  elif sys.argv[arg]=='--random-crop' or sys.argv[arg]=='-rc':
+    crop_left=random.randint(0,img.width-vectorwidth)
+    crop_top=random.randrange(0,img.height-vectorheight)
+    img=img.crop((crop_left,crop_top,crop_left+vectorwidth,crop_top+vectorheight))
   else:
     print('Unknown option: '+sys.argv[arg])
     quit()
