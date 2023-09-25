@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#export bgfile=`ls backgrounds/ | grep \.vec | shuf | head -n 1`
-#export objfile=`find ocr/train/ | grep \.vec | shuf | head -n 1`
-
 for objfile in `find ocr/train/ | grep \.vec | shuf | head -n 2000`;
 do export bgfile=`find backgrounds/ | grep \.vec | shuf | head -n 1`
    export posx=`echo "print(0.80*float($RANDOM)/32767)" | python`

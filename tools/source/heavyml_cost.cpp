@@ -80,6 +80,7 @@ int main(int argc, char **argv)
     string vectormap="X->X";
     size_t filename_truths=0;
     double gd_lambda=1;
+    size_t filename_truths=0;
     Network *model=NULL;
 
     for (size_t arg=1; arg+1<argc; ++arg)
@@ -150,30 +151,28 @@ int main(int argc, char **argv)
       { ifstream fin(datapath+"/"+labels[label]+"/"+*vfile);
         data.LoadRow(fin);
         fin.close();
-        vector<double> truth=IdVec(labels.size(),label);
         // Add filename truths
-        string fname=*vfile;
-        size_t endpos=fname.rfind('.');
+        vector<double> truth=IdVec(labels.size(),label);
+        size_t endpos=vfile->rfind('.');
         if (endpos==string::npos && filename_truths>0)
-        { cerr << "Ill formatted filename " << fname << endl;
+        { cerr << "Ill formatted filename " << *vfile << endl;
           for (size_t t=0; t<filename_truths; ++t)
             truth.push_back(0.0);
         }
         else
         { for (size_t t=0; t<filename_truths; ++t)
-          { size_t startpos=fname.rfind('_',endpos);
+          { size_t startpos=vfile->rfind('_',endpos);
             if (startpos==string::npos)
-            { cerr << "Ill formatted filename truth " << fname << endl;
+            { cerr << "Ill formatted filename truth " << *vfile << endl;
               truth.push_back(0.0);
             }
             else
-            { string tstr=fname.substr(startpos+1,endpos);
+            { string tstr=vfile->substr(startpos+1,endpos);
               endpos=startpos-1;
               stringstream ss;
               ss << tstr;
               double tval;
               ss >> tval;
-              //cout << "Filename " << fname << " tval " << tval << endl;
               truth.push_back(tval);
             }
           }
