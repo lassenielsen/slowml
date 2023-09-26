@@ -80,7 +80,6 @@ int main(int argc, char **argv)
     string vectormap="X->X";
     size_t filename_truths=0;
     double gd_lambda=1;
-    size_t filename_truths=0;
     Network *model=NULL;
 
     for (size_t arg=1; arg+1<argc; ++arg)

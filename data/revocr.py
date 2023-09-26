@@ -46,8 +46,8 @@ for px in range(int(float(bgw)*sizex)):
     objx=int(float(px)*float(objw)/(float(bgw)*sizex))
     objy=int(float(py)*float(objh)/(float(bgh)*sizey))
     dst[1+x+y*bgw]=dst[1+x+y*bgw]+obj[1+objx+objy*objw]/2.0
-  while dst[1+x+y*bgw]>1.0:
-    dst[1+x+y*bgw]=dst[1+x+y*bgw]%1.0
+    while dst[1+x+y*bgw]>1.0:
+      dst[1+x+y*bgw]=dst[1+x+y*bgw]%1.0
 
 writevec(sys.argv[9],dst)
 

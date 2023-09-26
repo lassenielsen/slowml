@@ -40,7 +40,7 @@ endif
 build: $(programs)
 
 install: $(programs)
-	cp $(programs) /usr/local/bin/
+	cp $(programs) slowml_imgvec.py /usr/local/bin/
 
 uninstall:
 	cd /usr/local/bin
