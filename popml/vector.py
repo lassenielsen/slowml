@@ -32,16 +32,35 @@ def ReadVector(fname):
   fin.close()
   return res
 
-def ReadCollection(path):
+def ReadCollection(path,fnr):
   res=dict()
   labels=GetLabelDirs(path)
   for label in labels:
-    print('Loading label ' + label)
-    lres=[]
+    #print('Loading label ' + label)
+    lvec=[]
     files=GetVectorFiles(path+'/'+label)
     for file in files:
-      print('  Loading file ' + file)
-      vec=ReadVector(path+'/'+label+'/'+file)
-      lres.append(vec)
-    res[label]=lres
+      #print('  Loading file ' + file)
+      fvec=ReadVector(path+'/'+label+'/'+file)
+      fres=[]
+      if fnr>0:
+        parts=file[0:-4].split('_')
+        for r in range(fnr):
+          if r>=len(parts):
+            #print('Error - missing results not in filename')
+            fres.append(0.0)
+          else:
+            fres.append(float(parts[r-fnr]))
+      lvec.append((fvec,fres))
+    res[label]=lvec
   return res
+
+def ClassVector(classstr,classes):
+  res=[]
+  for c in classes:
+    if c==classstr:
+      res.append(1.0)
+    else:
+      res.append(0.0)
+  return res
+

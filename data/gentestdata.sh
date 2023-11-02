@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for objfile in `find ocr/train/ | grep \.vec | shuf | head -n 2000`;
+for objfile in `find ocr/train/ | grep \.vec | shuf | head -n 20000`;
 do export bgfile=`find backgrounds/ | grep \.vec | shuf | head -n 1`
    export posx=`echo "print(0.80*float($RANDOM)/32767)" | python3`
    export posy=`echo "print(0.80*float($RANDOM)/32767)" | python3`
@@ -13,7 +13,7 @@ do export bgfile=`find backgrounds/ | grep \.vec | shuf | head -n 1`
    ./revocr.py $bgfile 100 $objfile 28 $posx $posy $size $size detectocr/train/$label/img_100_"$posx"_"$posy"_"$size"_"$size".vec
 done;
 
-for objfile in `find ocr/test/ | grep \.vec | shuf | head -n 2000`;
+for objfile in `find ocr/test/ | grep \.vec | shuf | head -n 20000`;
 do export bgfile=`find backgrounds/ | grep \.vec | shuf | head -n 1`
    export posx=`echo "print(0.85*float($RANDOM)/32767)" | python3`
    export posy=`echo "print(0.85*float($RANDOM)/32767)" | python3`

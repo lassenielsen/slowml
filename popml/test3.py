@@ -18,9 +18,9 @@ def group_vector(vec):
 # Load data
 data_inputs=[]
 data_outputs=[]
-collection=vector.ReadCollection(sys.argv[1])
+collection=vector.ReadCollection(sys.argv[1],0)
 for label in collection:
-  for vec in collection[label]:
+  for (vec,r) in collection[label]:
     arr=group_vector(split_vector(vec[1:],100))
     data_inputs.append(arr)
     data_outputs.append(int(label[6:]))
@@ -31,9 +31,11 @@ data_outputs=np.asarray(data_outputs)
 # Create neural network
 model = tf.keras.models.Sequential([
   #tf.keras.layers.Flatten(input_shape=(100, 100)),
-  tf.keras.layers.Conv2D(100,(30,30), activation='relu',input_shape=(100,100,1)),
-  tf.keras.layers.Flatten(input_shape=(71,71,100)),
-  #tf.keras.layers.Dense(1000,activation='relu'),
+  tf.keras.layers.Conv2D(100,(5,5), activation='relu',input_shape=(100,100,1),kernel_regularizer=tf.keras.regularizers.L2(0.001)), # 
+  #tf.keras.layers.MaxPooling2D((2,2)),
+  #tf.keras.layers.Conv2D(100,(5,5), activation='relu'),
+  tf.keras.layers.Flatten(),
+  tf.keras.layers.Dense(200,activation='relu',kernel_regularizer=tf.keras.regularizers.L2(0.001)),
   #tf.keras.layers.Dropout(0.2),
   tf.keras.layers.Dense(10)
 ])

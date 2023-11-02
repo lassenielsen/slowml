@@ -18,9 +18,9 @@ def group_vector(vec):
 # Load data
 x_test=[]
 y_test=[]
-collection=vector.ReadCollection(sys.argv[1])
+collection=vector.ReadCollection(sys.argv[1],0)
 for label in collection:
-  for vec in collection[label]:
+  for (vec,r) in collection[label]:
     arr=group_vector(split_vector(vec[1:],100))
     x_test.append(arr)
     y_test.append(int(label[6:]))
