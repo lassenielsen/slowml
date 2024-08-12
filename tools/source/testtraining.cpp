@@ -3,6 +3,7 @@
 #include <slowml/guidedvectordata.hpp>
 #include <slowml/network.hpp>
 #include <slowml/onevsall.hpp>
+#include <slowml/reinforcementlearning.hpp>
 #include <cmath>
 #include <iostream>
 using namespace std;
@@ -1412,6 +1413,348 @@ bool TestNetwork1() // {{{
     }
   }
   return true;
+} // }}}
+
+class RLSimpleGame : public RLGame // {{{
+{ RLSimpleGame(int n, int turn) // {{{
+  { myN=n;
+    myTurn=turn%2;
+    if (myN==0)
+      myWinner=1-turn;
+    else
+      myWinner=-1;
+  } // }}}
+  ~RLSimpleGame() {}
+
+  RLSimpleGame *Copy() { return new RLRimpleGame(myN); }
+  vector<double> State() // 5 features representing myN in binary {{{
+  { vector<double> result;
+    result.push_back(1.0d);
+    result.push_back(double(myN%2));
+    result.push_back(double((myN/2)%2));
+    result.push_back(double((myN/4)%2));
+    result.push_back(double((myN/8)%2));
+    result.push_back(double((myN/16)%2));
+    return result;
+  } // }}}
+  void Step(const std::vector<double> &inputs) // {{{
+  { size_t pins=1;
+    if (inputs[0]>=0.5d)
+      pins=2;
+    if (inputs[1]>=0.5d)
+      pins=3;
+
+    if (myN<=pins)
+    { myN=0;
+      myWinner=1-myTurn;
+    }
+    else
+    { myN-=pins;
+      myTurn=1-myTurn;
+    }
+  } // }}}
+  size_t Players() const { return 2; }
+  size_t Turn() const { return myTurn; }
+  bool Done() const { return myN<=0; }
+  vector<double> Score() const // {{{
+  { vector<double> score;
+    if (!Done())
+    { score.push_back(0.0d);
+      score.push_back(0.0d);
+    }
+    else
+    { score.push_back(myWinner==0?1.0d:0.0d);
+      score.push_back(myWinner==1?1.0d:0.0d);
+    }
+  } // }}}
+
+  string GameString() const // {{{
+  { stringstream result;
+    result << "DrNim state: " << myN << endl;
+    return result.str();
+  } // }}}
+
+  private:
+    int myN;
+    size_t myTurn;
+    int myWinner;
+}; // }}}
+bool TestRL1() // {{{
+{ // Create game
+  RLSimpleGame drnim(21,0);
+
+  // Create player networks
+  Network robert=Network::Parse("6->[[2*[all]]]");
+  Network kai=Network::Parse("6->[[5*[all]],[2*[all]]]");
+
+  // Train players
+
+  // INIT DATA
+  GuidedVectorData<double,size_t> t_input(3,0,std::vector<double>(),std::vector<size_t>());
+  // DATA {{{
+  t_input.AddRow(std::vector<double>{1.0,34.62365962451697,78.0246928153624} ,(3*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,30.28671076822607,43.89499752400101},(3*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,35.84740876993872,72.90219802708364},(3*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,60.18259938620976,86.30855209546826},(6*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,79.0327360507101,75.3443764369103}  ,(7*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,45.08327747668339,56.3163717815305} ,(4*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,61.10666453684766,96.51142588489624},(6*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,75.02474556738889,46.55401354116538},(7*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,76.09878670226257,87.42056971926803},(7*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,84.43281996120035,43.53339331072109},(8*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,95.86155507093572,38.22527805795094},(9*3)/5);
+  t_input.AddRow(std::vector<double>{1.0,75.01365838958247,30.60326323428011},(7*3)/5);
+  t_input.AddRow(std::vector<double>{1.0,82.30705337399482,76.48196330235604},(8*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,69.36458875970939,97.71869196188608},(6*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,39.53833914367223,76.03681085115882},(3*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,53.9710521485623,89.20735013750205} ,(5*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,69.07014406283025,52.74046973016765},(6*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,67.94685547711617,46.67857410673128},(6*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,70.66150955499435,92.92713789364831},(7*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,76.97878372747498,47.57596364975532},(7*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,67.37202754570876,42.83843832029179},(6*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,89.67677575072079,65.79936592745237},(8*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,50.534788289883,48.85581152764205}  ,(5*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,34.21206097786789,44.20952859866288},(3*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,77.9240914545704,68.9723599933059}  ,(7*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,62.27101367004632,69.95445795447587},(6*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,80.1901807509566,44.82162893218353} ,(8*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,93.114388797442,38.80067033713209}  ,(9*3)/5);
+  t_input.AddRow(std::vector<double>{1.0,61.83020602312595,50.25610789244621},(6*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,38.78580379679423,64.99568095539578},(3*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,61.379289447425,72.80788731317097}  ,(6*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,85.40451939411645,57.05198397627122},(8*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,52.10797973193984,63.12762376881715},(5*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,52.04540476831827,69.43286012045222},(5*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,40.23689373545111,71.16774802184875},(4*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,54.63510555424817,52.21388588061123},(5*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,33.91550010906887,98.86943574220611},(3*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,64.17698887494485,80.90806058670817},(6*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,74.78925295941542,41.57341522824434},(7*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,34.1836400264419,75.2377203360134}  ,(3*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,83.90239366249155,56.30804621605327},(8*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,51.54772026906181,46.85629026349976},(5*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,94.44336776917852,65.56892160559052},(9*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,82.36875375713919,40.61825515970618},(8*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,51.04775177128865,45.82270145776001},(5*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,62.22267576120188,52.06099194836679},(6*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,77.19303492601364,70.45820000180959},(7*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,97.77159928000232,86.7278223300282} ,(9*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,62.07306379667647,96.76882412413983},(6*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,91.56497449807442,88.69629254546599},(9*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,79.94481794066932,74.16311935043758},(7*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,99.2725269292572,60.99903099844988} ,(9*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,90.54671411399852,43.39060180650027},(9*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,34.52451385320009,60.39634245837173},(3*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,50.2864961189907,49.80453881323059} ,(5*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,49.58667721632031,59.80895099453265},(4*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,97.64563396007767,68.86157272420604},(9*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,32.57720016809309,95.59854761387875},(3*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,74.24869136721598,69.82457122657193},(7*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,71.79646205863379,78.45356224515052},(7*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,75.3956114656803,85.75993667331619} ,(7*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,35.28611281526193,47.02051394723416},(3*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,56.25381749711624,39.26147251058019},(5*3)/5);
+  t_input.AddRow(std::vector<double>{1.0,30.05882244669796,49.59297386723685},(3*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,44.66826172480893,66.45008614558913},(4*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,66.56089447242954,41.09209807936973},(6*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,40.45755098375164,97.53518548909936},(4*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,49.07256321908844,51.88321182073966},(4*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,80.27957401466998,92.11606081344084},(8*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,66.74671856944039,60.99139402740988},(6*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,32.72283304060323,43.30717306430063},(3*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,64.0393204150601,78.03168802018232} ,(6*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,72.34649422579923,96.22759296761404},(7*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,60.45788573918959,73.09499809758037},(6*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,58.84095621726802,75.85844831279042},(5*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,99.82785779692128,72.36925193383885},(9*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,47.26426910848174,88.47586499559782},(4*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,50.45815980285988,75.80985952982456},(5*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,60.45555629271532,42.50840943572217},(6*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,82.22666157785568,42.71987853716458},(8*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,88.9138964166533,69.80378889835472} ,(8*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,94.83450672430196,45.69430680250754},(9*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,67.31925746917527,66.58935317747915},(6*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,57.23870631569862,59.51428198012956},(5*5)/5);
+  t_input.AddRow(std::vector<double>{1.0,80.36675600171273,90.96014789746954},(8*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,68.46852178591112,85.59430710452014},(6*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,42.0754545384731,78.84478600148043} ,(4*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,75.47770200533905,90.42453899753964},(7*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,78.63542434898018,96.64742716885644},(7*9)/5);
+  t_input.AddRow(std::vector<double>{1.0,52.34800398794107,60.76950525602592},(5*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,94.09433112516793,77.15910509073893},(9*7)/5);
+  t_input.AddRow(std::vector<double>{1.0,90.44855097096364,87.50879176484702},(9*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,55.48216114069585,35.57070347228866},(5*3)/5);
+  t_input.AddRow(std::vector<double>{1.0,74.49269241843041,84.84513684930135},(7*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,89.84580670720979,45.35828361091658},(8*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,83.48916274498238,48.38028579728175},(8*4)/5);
+  t_input.AddRow(std::vector<double>{1.0,42.2617008099817,87.10385094025457} ,(4*8)/5);
+  t_input.AddRow(std::vector<double>{1.0,99.31500880510394,68.77540947206617},(9*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,55.34001756003703,64.9319380069486} ,(5*6)/5);
+  t_input.AddRow(std::vector<double>{1.0,74.77589300092767,89.52981289513276},(7*8)/5);
+  // }}}
+  GuidedVectorData<double,size_t> t_samples(28,0,std::vector<double>(),std::vector<size_t>());
+  // DATA {{{
+  for (size_t instance=0; instance<t_input.Height(); ++instance)
+  { double x1=(t_input.GetValue(instance,1)-50.0)/50.0;
+    double x2=(t_input.GetValue(instance,2)-50.0)/50.0;
+     t_samples.AddRow(vector<double>
+      { t_input.GetValue(instance,0)   // 1.0
+       ,x1                             // x1
+       ,x2                             // x2
+       ,pow(x1,2.0)                    // x1^2
+       ,x1*x2                          // x1*x2
+       ,pow(x2,2.0)                    // x2^2
+       ,pow(x1,3.0)                    // x1^3
+       ,pow(x1,2.0)*x2                 // x1^2*x2
+       ,x1*pow(x2,2.0)                 // x1*x2^2
+       ,pow(x2,3.0)                    // x2^3
+       ,pow(x1,4.0)                    // x1^4
+       ,pow(x1,3.0)*x2                 // x1^3*x2
+       ,pow(x1,2.0)*pow(x2,2.0)        // x1^2*x2^2
+       ,x1*pow(x2,3.0)                 // x1*x2^3
+       ,pow(x2,4.0)                    // x2^4
+       ,pow(x1,5.0)                    // x1^5
+       ,pow(x1,4.0)*x2                 // x1^4*x2
+       ,pow(x1,3.0)*pow(x2,2.0)        // x1^3*x2^2
+       ,pow(x1,2.0)*pow(x2,3.0)        // x1^2*x2^3
+       ,x1*pow(x2,4.0)                 // x1*x2^4
+       ,pow(x2,5.0)                    // x2^5
+       ,pow(x1,6.0)                    // x1^6
+       ,pow(x1,5.0)*x2                 // x1^5*x2
+       ,pow(x1,4.0)*pow(x2,2.0)        // x1^4*x2^2
+       ,pow(x1,3.0)*pow(x2,3.0)        // x1^3*x2^3
+       ,pow(x1,2.0)*pow(x2,4.0)        // x1^2*x2^4
+       ,x1*pow(x2,5.0)                 // x1*x2^5
+       ,pow(x2,6.0)                    // x2^6
+      }, t_input.GetResult(instance));
+  }
+  // }}}
+  // DEFINE MODEL
+  vector<Label> mclabels;
+  mclabels.push_back(Label("Zero","Desc",0,0.0));
+  mclabels.push_back(Label("One","Desc",1,1.0));
+  mclabels.push_back(Label("Two","Desc",2,2.0));
+  mclabels.push_back(Label("Three","Desc",3,3.0));
+  mclabels.push_back(Label("Four","Desc",4,4.0));
+  mclabels.push_back(Label("Five","Desc",5,5.0));
+  mclabels.push_back(Label("Six","Desc",6,6.0));
+  mclabels.push_back(Label("Seven","Desc",7,7.0));
+  mclabels.push_back(Label("Eight","Desc",8,8.0));
+  mclabels.push_back(Label("Nine","Desc",9,9.0));
+  OneVsAll mcmodel(mclabels);
+  // DEFINE FEATURES {{{
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  mcmodel.AddParameter(0.0);
+  // }}}
+  // FIT MODEL
+  double alpha_inv=30.0;
+  double lambda=0.0;
+  mcmodel.FitParameters(t_samples,alpha_inv,lambda,200000,false); // Fit
+  cout << "Fitted cost: " << mcmodel.Cost(t_samples,lambda) << endl;
+  // VALIDATE FIT
+  //if (abs(mcmodel.GetParameter(0)-1.0)>0.1)
+  //{ cerr << "TestLogRM1 failed - Fitted first parameter is too far from 1: " << mcmodel.GetParameter(0) << endl;
+  //  return false;
+  //}
+  //if (abs(mcmodel.GetParameter(1)-1.0)>0.1)
+  //{ cerr << "TestLogRM1 failed - Fitted second parameter is too far from 1: " << mcmodel.GetParameter(1) << endl;
+  //  return false;
+  //}
+  //if (abs(mcmodel.GetParameter(2)-2.0)>0.1)
+  //{ cerr << "TestLogRM1 failed - Fitted third parameter is too far from 2: " << mcmodel.GetParameter(2) << endl;
+  //  return false;
+  //}
+  //double cost=mcmodel.Cost(t_samples,lambda);
+  //if (cost>0.1
+  //{ cerr << "TestLogRM1 failed - Cost after fit is too far from 0: " << cost << endl;
+  //  return false;
+  //}
+  //// Test
+  GuidedVectorData<double,size_t> t_test_points(3,0,std::vector<double>(),std::vector<size_t>());
+  // DATA {{{
+  t_test_points.AddRow(std::vector<double>{1.0,61.379289447425,72.80788731317097}  ,(6*7)/5);
+  t_test_points.AddRow(std::vector<double>{1.0,85.40451939411645,57.05198397627122},(8*5)/5);
+  t_test_points.AddRow(std::vector<double>{1.0,52.10797973193984,63.12762376881715},(5*6)/5);
+  t_test_points.AddRow(std::vector<double>{1.0,52.04540476831827,79.43286012045222},(5*7)/5);
+  t_test_points.AddRow(std::vector<double>{1.0,40.23689373545111,71.16774802184875},(4*7)/5);
+  t_test_points.AddRow(std::vector<double>{1.0,54.63510555424817,52.21388588061123},(5*5)/5);
+  // }}}
+  GuidedVectorData<double,size_t> t_test(28,0,std::vector<double>(),std::vector<size_t>());
+  // DATA {{{
+  for (size_t instance=0; instance<t_test_points.Height(); ++instance)
+  { double x1=(t_test_points.GetValue(instance,1)-50.0)/50.0;
+    double x2=(t_test_points.GetValue(instance,2)-50.0)/50.0;
+     t_test.AddRow(vector<double>
+      { t_test_points.GetValue(instance,0)   // 1.0
+       ,x1                             // x1
+       ,x2                             // x2
+       ,pow(x1,2.0)                    // x1^2
+       ,x1*x2                          // x1*x2
+       ,pow(x2,2.0)                    // x2^2
+       ,pow(x1,3.0)                    // x1^3
+       ,pow(x1,2.0)*x2                 // x1^2*x2
+       ,x1*pow(x2,2.0)                 // x1*x2^2
+       ,pow(x2,3.0)                    // x2^3
+       ,pow(x1,4.0)                    // x1^4
+       ,pow(x1,3.0)*x2                 // x1^3*x2
+       ,pow(x1,2.0)*pow(x2,2.0)        // x1^2*x2^2
+       ,x1*pow(x2,3.0)                 // x1*x2^3
+       ,pow(x2,4.0)                    // x2^4
+       ,pow(x1,5.0)                    // x1^5
+       ,pow(x1,4.0)*x2                 // x1^4*x2
+       ,pow(x1,3.0)*pow(x2,2.0)        // x1^3*x2^2
+       ,pow(x1,2.0)*pow(x2,3.0)        // x1^2*x2^3
+       ,x1*pow(x2,4.0)                 // x1*x2^4
+       ,pow(x2,5.0)                    // x2^5
+       ,pow(x1,6.0)                    // x1^6
+       ,pow(x1,5.0)*x2                 // x1^5*x2
+       ,pow(x1,4.0)*pow(x2,2.0)        // x1^4*x2^2
+       ,pow(x1,3.0)*pow(x2,3.0)        // x1^3*x2^3
+       ,pow(x1,2.0)*pow(x2,4.0)        // x1^2*x2^4
+       ,x1*pow(x2,5.0)                 // x1*x2^5
+       ,pow(x2,6.0)                    // x2^6
+      }, t_test_points.GetResult(instance));
+  }
+  // }}}
+  bool result=true;
+  for (size_t instance=0; instance<t_test.Height(); ++instance)
+  {
+    Label eval=mcmodel.Eval(t_test,instance);
+    if (eval.Value()!=t_test.GetResult(instance))
+    { cerr << "TestOVA1 failed - Predicted " << eval.Name() << "(" << eval.Value() << ")!=" << t_test.GetResult(instance) << " on test " << instance << endl;
+      result=false;
+    }
+    else
+    { cout << "TestOVA1 test " << instance << " succeeded: truth=" << t_test.GetResult(instance) << " guess=" << eval.Name() << "(" << eval.Value() << ")" << endl;
+    }
+  }
+  return result;
 } // }}}
 int main()
 { try
