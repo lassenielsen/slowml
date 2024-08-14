@@ -2,6 +2,8 @@
 #include <slowml/network.hpp>
 #include <slowml/vectordata.hpp>
 #include <vector>
+#include <sstream>
+#include <iostream>
 
 class RLGame
 { public:
@@ -12,16 +14,18 @@ class RLGame
     /*! Eval is a function, that evaluates a model, and return the score for each player.
      ** Higher scores are better.
      */
-    std::vector<double> Eval(const std::vector<Network> &models) const // {{{
+    std::vector<double> Eval(const std::vector<Network*> &models) const // {{{
     { RLGame *g=Copy();
       while (!g->Done())
-      { g->Step(models[g->Turn()].Eval(g->State()));
+      { g->Step(models[g->Turn()]->Eval(g->State()));
       }
       vector<double> res=g->Score();
       delete g;
       return res;
     } // }}}
 
+    //! List the possible choices in the current state.
+    virtual std::vector<std::vector<double> > Choices()=0;
     //! Step tells the game to proceed with the provided choices for the current player.
     virtual void Step(const std::vector<double> &inputs)=0;
     //! Players return the number of players in the game
@@ -36,8 +40,6 @@ class RLGame
     virtual std::vector<double> Score() const=0;
 };
 
-std::vector<GuidedVectorData<double,std::vector<double> > > MakeRLData(std::vector<Network> &models, const RLGame &game);
-
 double RelativeScore(const std::vector<double> &scores, size_t player) // {{{
 { double oscore=0.0d;
   for (size_t i=0; i<scores.size(); ++i)
@@ -47,45 +49,76 @@ double RelativeScore(const std::vector<double> &scores, size_t player) // {{{
   return scores[player]-oscore;
 } // }}}
 
-std::vector<GuidedVectorData<T,R> > MakeRLData(std::vector<Network> &models, const RLGame &game) // {{{
-{ std::vector<VectorData<T> > tests;
-  for (size_t i=0; i<game.Players(); ++i)
-    tests.push_back(VectorData(std::vector<double>(),models[i].LayerSize(models[i].Layers()-1),0);
-  std::vector<std::vector<std::vector<double> > > results;
-
-  RLGame *state=game.Copy();
+std::string vecstr(const std::vector<double> &vec)
+{ stringstream ss;
+  for (size_t i=0; i<vec.size(); ++i)
+  { if (i!=0)
+      ss << ", ";
+    ss << vec[i];
+  }
+  return ss.str();
+}
+void MakeRLData(std::vector<Network*> &models, const RLGame &game, std::vector<std::vector<double> > &inputs, std::vector<std::vector<std::vector<double> > > &results) // {{{
+{ RLGame *state=game.Copy();
 
   while (!state->Done())
-  { vector<double> statevec=state->State();
+  { vector<double> input=state->State();
     size_t player=state->Turn();
-    vector<double> choices=model[player].Eval(statevec);
+    //std::cout << "MakeRLData input: " << vecstr(input) << std::endl;
+    //std::cout << "MakeRLData player: " << player << std::endl;
+    vector<double> choices=models[player]->Eval(input);
+    //std::cout << "MakeRLData choices: " << vecstr(choices) << std::endl;
 
     // Get chosen next state and its score with current model
-    RLGame *nstate=state->Step(choices);
-    vector<double> scores=nstate->Eval(model);
-    vector<double> right_choices;
-    // Test
-    for (size_t i=0; i<choices.size(); ++i)
-    { vector<double> achoices=choices;
-      achoices[i]=choices[i]>=0.5d?0.0d:1.0d;
-      // Get anternative next state and its score with current model
+    RLGame *nstate=state->Copy();
+    nstate->Step(choices);
+    vector<double> scores=nstate->Eval(models);
+    //std::cout << "MakeRLData scores: " << vecstr(scores) << std::endl;
+    vector<double> right_choices=choices;
+    double best_score=RelativeScore(scores,player);
+    //std::cout << "MakeRLData score: " << best_score << std::endl;
+    // Compare possible choices, and select best
+    vector<vector<double> > achoices=state->Choices();
+    for (size_t a=0; a<achoices.size(); ++a)
+    { 
+      //std::cout << "MakeRLData alternative: " << vecstr(achoices[a]) << std::endl;
       RLGame *astate=state->Copy();
-      astate->Step(achoices);
-      std::vector<double> ascores=astate->Eval(model);
-      // Test if score improves, and use best scoring choice as right answer
-      right_choices.push_back(RelativeScore(scores,player)>=RelativeScore(ascore,player)?choices[i]:achoices[i]);
+      astate->Step(achoices[a]);
+      vector<double> ascores=astate->Eval(models);
+      //std::cout << "MakeRLData ascores: " << vecstr(ascores) << std::endl;
+      double ascore=RelativeScore(ascores,player);
+      //std::cout << "MakeRLData ascore: " << ascore << std::endl;
+      if (ascore>=best_score)
+      { 
+        //std::cout << "MakeRLData using alternative!" << std::endl;
+        best_score=ascore;
+        right_choices=achoices[a];
+      }
       // Clean up
       delete astate;
     }
-    tests[player].push_back(statevec);
+    //for (size_t i=0; i<choices.size(); ++i)
+    //{ std::cout << "MakeRLData index: " << i << endl;
+    //  vector<double> achoices=choices;
+    //  achoices[i]=choices[i]>=0.5d?0.0d:1.0d;
+    //  std::cout << "MakeRLData achoice: " << vecstr(achoices) << endl;
+    //  // Get anternative next state and its score with current model
+    //  RLGame *astate=state->Copy();
+    //  astate->Step(achoices);
+    //  std::vector<double> ascores=astate->Eval(models);
+    //  std::cout << "MakeRLData ascores: " << vecstr(ascores) << std::endl;
+    //  // Test if score improves, and use best scoring choice as right answer
+    //  right_choices.push_back(RelativeScore(scores,player)>=RelativeScore(ascores,player)?1.0-achoices[i]:achoices[i]);
+    //  std::cout << "MakeRLData right_choices: " << vecstr(right_choices) << std::endl;
+    //  // Clean up
+    //  delete astate;
+    //}
+    inputs[player].insert(inputs[player].end(),input.begin(),input.end());
     results[player].push_back(right_choices);
     delete state;
     state=nstate;
    }
    delete state;
-   // Create result and return
-   vector<GuidedVectorData<double,std::vector<double> > > result;
-   for (size_t i=0; i<tests.size(); ++i)
-     result.push_back(GuidedVectorData<double,std::vector<double> >(tests[i],results[i]));
-   return result;
+
+   return;
 } // }}}

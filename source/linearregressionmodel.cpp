@@ -11,7 +11,7 @@ LinearRegressionModel::~LinearRegressionModel() // {{{
 {
 } // }}}
 
-double LinearRegressionModel::Eval(const Data<double> &instances, size_t pos) // {{{
+double LinearRegressionModel::Eval(const Data<double> &instances, size_t pos) const // {{{
 { if (instances.Width()!=Parameters().size())
   { stringstream ss;
     ss << "LinearRegressionModel::Eval instance width(" << instances.Width() << ") does not match number of parameters(" << Parameters().size() <<")" ;
@@ -23,7 +23,7 @@ double LinearRegressionModel::Eval(const Data<double> &instances, size_t pos) //
   return result;
 } // }}}
 
-double LinearRegressionModel::Eval(const vector<double> &instance) // {{{
+double LinearRegressionModel::Eval(const vector<double> &instance) const // {{{
 { if (instance.size()!=Parameters().size())
   { stringstream ss;
     ss << "LinearRegressionModel::Eval instance width(" << instance.size() << ") does not match number of parameters(" << Parameters().size() <<")" ;

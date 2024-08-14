@@ -16,7 +16,7 @@ LogisticRegressionModel::~LogisticRegressionModel() // {{{
 {
 } // }}}
 
-double LogisticRegressionModel::Eval(const Data<double> &instances, size_t pos) // {{{
+double LogisticRegressionModel::Eval(const Data<double> &instances, size_t pos) const // {{{
 { if (instances.Width()!=CountParameters())
   { stringstream ss;
     ss << "LogisticRegressionModel::Eval instance width(" << instances.Width() << ") does not match number of parameters(" << CountParameters() <<")" ;
@@ -27,7 +27,7 @@ double LogisticRegressionModel::Eval(const Data<double> &instances, size_t pos) 
     result += GetParameter(i)*instances.GetValue(pos,i);
   return sigmoid(result);
 } // }}}
-double LogisticRegressionModel::Eval(const vector<double> &instance) // {{{
+double LogisticRegressionModel::Eval(const vector<double> &instance) const // {{{
 { if (instance.size()!=CountParameters())
   { stringstream ss;
     ss << "LogisticRegressionModel::Eval instance width(" << instance.size() << ") does not match number of parameters(" << CountParameters() <<")" ;

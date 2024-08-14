@@ -21,8 +21,8 @@ template<class Result> class Model // {{{
     virtual double GetParameter(size_t i) const=0;
     virtual void SetParameter(size_t i, double val)=0;
 
-    virtual Result Eval(const Data<double> &instances, size_t pos)=0;
-    virtual Result Eval(const std::vector<double> &instance)=0;
+    virtual Result Eval(const Data<double> &instances, size_t pos) const=0;
+    virtual Result Eval(const std::vector<double> &instance) const=0;
     virtual double Cost(const GuidedData<double,Result> &instances, double lambda=1.0)=0;
     virtual std::vector<double> Delta(const GuidedData<double,Result> &instances, double lambda=1.0)=0;
 

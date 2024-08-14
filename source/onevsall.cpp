@@ -18,7 +18,7 @@ void OneVsAll::AddParameter(double parameter) // {{{
     myModels[model].AddParameter(parameter);
 } // }}}
 
-const Label &OneVsAll::Eval(const Data<double> &instances, size_t pos) // {{{
+const Label &OneVsAll::Eval(const Data<double> &instances, size_t pos) const // {{{
 { size_t best_model=0;
   double propability=myModels[0].Eval(instances,pos);
   for (size_t model=1; model<myModels.size(); ++model)
