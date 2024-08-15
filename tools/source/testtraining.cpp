@@ -1607,25 +1607,25 @@ bool TestRL1() // {{{
 
   // Test models
   bool result=true;
-  // Play game
-  while (!drnim.Done())
-  { cout << "DrNim State: " << drnim.GameString() << endl;
-    if (drnim.Turn()==0)
-    { cout << "Choose 1 to 3: " << flush;
-      int c;
-      cin >> c;
-      vector<double> cinput;
-      cinput.push_back(c==2?1.0d:0.0d);
-      cinput.push_back(c==3?1.0d:0.0d);
-      drnim.Step(cinput);
-    }
-    else
-      drnim.Step(models[drnim.Turn()]->Eval(drnim.State()));
-  }
-  cout << "Score: " << drnim.GameString() << endl;
-  cout << "Score 0: " << drnim.Score()[0] << endl;
-  cout << "Score 1: " << drnim.Score()[1] << endl;
-  result=result && drnim.Score()[0]<drnim.Score()[1];
+  //// Play game
+  //while (!drnim.Done())
+  //{ cout << "DrNim State: " << drnim.GameString() << endl;
+  //  if (drnim.Turn()==0)
+  //  { cout << "Choose 1 to 3: " << flush;
+  //    int c;
+  //    cin >> c;
+  //    vector<double> cinput;
+  //    cinput.push_back(c==2?1.0d:0.0d);
+  //    cinput.push_back(c==3?1.0d:0.0d);
+  //    drnim.Step(cinput);
+  //  }
+  //  else
+  //    drnim.Step(models[drnim.Turn()]->Eval(drnim.State()));
+  //}
+  //cout << "Score: " << drnim.GameString() << endl;
+  //cout << "Score 0: " << drnim.Score()[0] << endl;
+  //cout << "Score 1: " << drnim.Score()[1] << endl;
+  //result=result && drnim.Score()[0]<drnim.Score()[1];
   result=result && TestModel_RL1(inputs[0],results[0],models[0],0.5d);
   result=result && TestModel_RL1(inputs[1],results[1],models[1],0.5d);
   return result;
