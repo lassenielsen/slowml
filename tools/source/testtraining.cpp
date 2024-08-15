@@ -1494,7 +1494,9 @@ class RLSimpleGame : public RLGame // {{{
   
     string GameString() const // {{{
     { stringstream result;
-      result << "DrNim state: " << myN << ", " << myTurn << ", " << myWinner << endl;
+      for (size_t i=0; i<myN; ++i)
+        result << " I";
+      //result << "DrNim state: " << myN << ", " << myTurn << ", " << myWinner << endl;
       return result.str();
     } // }}}
   
@@ -1504,19 +1506,41 @@ class RLSimpleGame : public RLGame // {{{
     int myWinner;
 }; // }}}
 
-void TrainDrNim(vector<vector<double> > &inputs, vector<vector<vector<double> > > &results, vector<Network*> &models, double ainv)
+void TrainDrNim(vector<vector<double> > &inputs, vector<vector<vector<double> > > &results, vector<Network*> &models, double ainv) // {{{
 { RLSimpleGame drnim(21,0);
-  //for (size_t player=0; player<drnim.Players(); ++player)
-  //{ if (results[player].size()>models[player]->InputSize()*1000)
-  //  { inputs[player].erase(inputs[player].begin(),inputs[player].end()-1000*models[player]->InputSize());
-  //    results[player].erase(results[player].begin(),results[player].end()-1000);
-  //  }
-  //}
  
   // Play game from different positions
-  for (size_t itr=0; itr<20; ++itr)
-  { RLSimpleGame drnimgame(2+itr,0);
-    MakeRLData(models,drnimgame,inputs,results);
+  for (size_t player=0; player<drnim.Players(); ++player)
+  { for (size_t itr=0; itr<20; ++itr)
+    { RLSimpleGame drnimgame(2+itr,player);
+      MakeRLData(models,drnimgame,inputs,results);
+    }
+  }
+
+  // Remove old trainingdata
+  vector<vector<double>> tmpinputs=inputs;
+  vector<vector<vector<double>>> tmpresults=results;
+  for (size_t player=0; player<drnim.Players(); ++player)
+  { inputs[player].clear();
+    results[player].clear();
+    for (size_t i=0; i<tmpresults[player].size(); ++i)
+    { int updates=0;
+      for (size_t j=i+1; updates<1 &&  j<tmpresults[player].size(); ++j)
+      { bool same=true;
+        for (size_t k=0; k<models[player]->InputSize(); ++k)
+        { if (tmpinputs[player][i*models[player]->InputSize()+k]!=tmpinputs[player][j*models[player]->InputSize()+k])
+            same=false;
+        }
+        if (same)
+          ++updates;
+      }
+      if (updates<1)
+      { results[player].push_back(tmpresults[player][i]);
+        for (size_t k=0; k<models[player]->InputSize(); ++k)
+        { inputs[player].push_back(tmpinputs[player][i*models[player]->InputSize()+k]);
+        }
+      }
+    }
   }
   // Print data
   //for (size_t player=0; player<drnim.Players(); ++player)
@@ -1534,17 +1558,17 @@ void TrainDrNim(vector<vector<double> > &inputs, vector<vector<vector<double> > 
   { double alpha=ainv;
     VectorData<double> data(inputs[player],models[player]->InputSize(),inputs[player].size()/models[player]->InputSize());
     GuidedVectorData<double,vector<double> > trainingdata(data,results[player]);
-    double precost=models[player]->Cost(trainingdata);
-    models[player]->FitParameters(trainingdata,alpha,1.0,10,false);
-    double postcost=models[player]->Cost(trainingdata);
-    cout << precost << " -> " << postcost << endl;
+    double precost=models[player]->Cost(trainingdata,0.1);
+    models[player]->FitParameters(trainingdata,alpha,0.1,1,false);
+    double postcost=models[player]->Cost(trainingdata,0.1);
+    //cout << precost << " -> " << postcost << endl;
   }
-}
+} // }}}
   
 bool TestModel_RL1(vector<double> &inputs, vector<vector<double> > &results, Network *model, double maxcost) // {{{
 { VectorData<double> data(inputs,model->InputSize(),inputs.size()/model->InputSize());
   GuidedVectorData<double,vector<double> > testdata(data,results);
-  double cost=model->Cost(testdata);
+  double cost=model->Cost(testdata,0.1);
   if (cost>maxcost)
   { cerr << "Cost=" << cost << ">" << maxcost << endl;
     return false;
@@ -1569,7 +1593,7 @@ bool TestRL1() // {{{
   models.push_back(Network::Parse("6->[[21*[all]],[2*[all]]]"));
 
   // Initialize
-  RLSimpleGame drnim(21,0);
+  RLSimpleGame drnim(21,1);
   vector<vector<double> > inputs;
   vector<vector<vector<double> > > results;
   for (size_t player=0; player<drnim.Players(); ++player)
@@ -1578,32 +1602,32 @@ bool TestRL1() // {{{
   }
 
   // Train players
-  for (size_t rep=0; rep<300; ++rep)
+  for (size_t rep=0; rep<200; ++rep)
     TrainDrNim(inputs,results,models,0.0d);
 
   // Test models
-  // MANUAL TEST // Play game
-  // MANUAL TEST while (!drnim.Done())
-  // MANUAL TEST { cout << "DrNim State: " << drnim.GameString() << endl;
-  // MANUAL TEST   if (drnim.Turn()==0)
-  // MANUAL TEST   { cout << "Choose 1 to 3: " << flush;
-  // MANUAL TEST     int c;
-  // MANUAL TEST     cin >> c;
-  // MANUAL TEST     vector<double> cinput;
-  // MANUAL TEST     cinput.push_back(c==2?1.0d:0.0d);
-  // MANUAL TEST     cinput.push_back(c==3?1.0d:0.0d);
-  // MANUAL TEST     drnim.Step(cinput);
-  // MANUAL TEST   }
-  // MANUAL TEST   else
-  // MANUAL TEST     drnim.Step(models[drnim.Turn()]->Eval(drnim.State()));
-  // MANUAL TEST }
-  // MANUAL TEST cout << "Score: " << drnim.GameString() << endl;
-  // MANUAL TEST cout << "Score 0: " << drnim.Score()[0] << endl;
-  // MANUAL TEST cout << "Score 1: " << drnim.Score()[1] << endl;
-  // MANUAL TEST bool result=drnim.Score()[0]<drnim.Score()[1];
   bool result=true;
-  result=result && TestModel_RL1(inputs[0],results[0],models[0],0.4d);
-  result=result && TestModel_RL1(inputs[1],results[1],models[1],0.1d);
+  // Play game
+  while (!drnim.Done())
+  { cout << "DrNim State: " << drnim.GameString() << endl;
+    if (drnim.Turn()==0)
+    { cout << "Choose 1 to 3: " << flush;
+      int c;
+      cin >> c;
+      vector<double> cinput;
+      cinput.push_back(c==2?1.0d:0.0d);
+      cinput.push_back(c==3?1.0d:0.0d);
+      drnim.Step(cinput);
+    }
+    else
+      drnim.Step(models[drnim.Turn()]->Eval(drnim.State()));
+  }
+  cout << "Score: " << drnim.GameString() << endl;
+  cout << "Score 0: " << drnim.Score()[0] << endl;
+  cout << "Score 1: " << drnim.Score()[1] << endl;
+  result=result && drnim.Score()[0]<drnim.Score()[1];
+  result=result && TestModel_RL1(inputs[0],results[0],models[0],0.5d);
+  result=result && TestModel_RL1(inputs[1],results[1],models[1],0.5d);
   return result;
 } // }}}
 int main()
