@@ -6,6 +6,7 @@
 #include <slowml/reinforcementlearning.hpp>
 #include <cmath>
 #include <iostream>
+#include <fstream>
 using namespace std;
 bool TestLinRM1() // {{{
 { // INIT DATA
@@ -1415,9 +1416,9 @@ bool TestNetwork1() // {{{
   return true;
 } // }}}
 
-class RLSimpleGame : public RLGame // {{{
+class RLNimGame : public RLGame // {{{
 { public: 
-    RLSimpleGame(int n, int turn) // {{{
+    RLNimGame(int n, int turn) // {{{
     { myN=n;
       myTurn=turn%2;
       if (myN==0)
@@ -1425,9 +1426,10 @@ class RLSimpleGame : public RLGame // {{{
       else
         myWinner=-1;
     } // }}}
-    virtual ~RLSimpleGame() {}
+    virtual ~RLNimGame() {}
   
-    RLGame *Copy() const { return new RLSimpleGame(myN, myTurn); }
+    RLGame *Copy() const { return new RLNimGame(myN, myTurn); }
+    void Init() { myN=2+rand()%20; myTurn=rand()%2; myWinner=-1; }
     vector<double> State() // 5 features representing myN in binary {{{
     { vector<double> result;
       result.push_back(1.0d);
@@ -1505,75 +1507,31 @@ class RLSimpleGame : public RLGame // {{{
     size_t myTurn;
     int myWinner;
 }; // }}}
+bool TestModel_RL1(Network *model, double maxcost) // {{{
+{ // DISABELING MANUAL TEST // Play game
+  // DISABELING MANUAL TEST RLNimGame playnim(21,0);
+  // DISABELING MANUAL TEST 
+  // DISABELING MANUAL TEST while (!playnim.Done())
+  // DISABELING MANUAL TEST { cout << "DrNim State: " << playnim.GameString() << endl;
+  // DISABELING MANUAL TEST   if (playnim.Turn()==0)
+  // DISABELING MANUAL TEST   { cout << "Choose 1 to 3: " << flush;
+  // DISABELING MANUAL TEST     int c;
+  // DISABELING MANUAL TEST     cin >> c;
+  // DISABELING MANUAL TEST     vector<double> cinput;
+  // DISABELING MANUAL TEST     cinput.push_back(c==2?1.0d:0.0d);
+  // DISABELING MANUAL TEST     cinput.push_back(c==3?1.0d:0.0d);
+  // DISABELING MANUAL TEST     playnim.Step(cinput);
+  // DISABELING MANUAL TEST   }
+  // DISABELING MANUAL TEST   else
+  // DISABELING MANUAL TEST     playnim.Step(model->Eval(playnim.State()));
+  // DISABELING MANUAL TEST }
+  // DISABELING MANUAL TEST cout << "Score: " << playnim.GameString() << endl;
+  // DISABELING MANUAL TEST cout << "Score 0: " << playnim.Score()[0] << endl;
+  // DISABELING MANUAL TEST cout << "Score 1: " << playnim.Score()[1] << endl;
+  // DISABELING MANUAL TEST if (playnim.Score()[0]>=playnim.Score()[1])
+  // DISABELING MANUAL TEST   return false;
 
-void TrainDrNim(vector<vector<double> > &inputs, vector<vector<vector<double> > > &results, vector<Network*> &models, double ainv) // {{{
-{ RLSimpleGame drnim(21,0);
- 
-  // Play game from different positions
-  for (size_t player=0; player<drnim.Players(); ++player)
-  { for (size_t itr=0; itr<20; ++itr)
-    { RLSimpleGame drnimgame(2+itr,player);
-      MakeRLData(models,drnimgame,inputs,results);
-    }
-  }
-
-  // Remove old trainingdata
-  vector<vector<double>> tmpinputs=inputs;
-  vector<vector<vector<double>>> tmpresults=results;
-  for (size_t player=0; player<drnim.Players(); ++player)
-  { inputs[player].clear();
-    results[player].clear();
-    for (size_t i=0; i<tmpresults[player].size(); ++i)
-    { int updates=0;
-      for (size_t j=i+1; updates<1 &&  j<tmpresults[player].size(); ++j)
-      { bool same=true;
-        for (size_t k=0; k<models[player]->InputSize(); ++k)
-        { if (tmpinputs[player][i*models[player]->InputSize()+k]!=tmpinputs[player][j*models[player]->InputSize()+k])
-            same=false;
-        }
-        if (same)
-          ++updates;
-      }
-      if (updates<1)
-      { results[player].push_back(tmpresults[player][i]);
-        for (size_t k=0; k<models[player]->InputSize(); ++k)
-        { inputs[player].push_back(tmpinputs[player][i*models[player]->InputSize()+k]);
-        }
-      }
-    }
-  }
-  // Print data
-  //for (size_t player=0; player<drnim.Players(); ++player)
-  //{ cout << "Trainingdata for player " << player << endl;
-  //  for (size_t h=0; h<inputs[player].size()/models[player]->InputSize(); ++h)
-  //  { for (size_t w=0; w<models[player]->InputSize(); ++w)
-  //      cout << inputs[player][h*models[player]->InputSize()+w] << ", ";
-  //    cout << " -> ";
-  //    for (size_t w=0; w<results[player][h].size(); ++w)
-  //      cout << results[player][h][w] << ", ";
-  //    cout << endl;
-  //  }
-  //}
-  for (size_t player=0; player<drnim.Players(); ++player)
-  { double alpha=ainv;
-    VectorData<double> data(inputs[player],models[player]->InputSize(),inputs[player].size()/models[player]->InputSize());
-    GuidedVectorData<double,vector<double> > trainingdata(data,results[player]);
-    double precost=models[player]->Cost(trainingdata,0.1);
-    models[player]->FitParameters(trainingdata,alpha,0.1,1,false);
-    double postcost=models[player]->Cost(trainingdata,0.1);
-    //cout << precost << " -> " << postcost << endl;
-  }
-} // }}}
-  
-bool TestModel_RL1(vector<double> &inputs, vector<vector<double> > &results, Network *model, double maxcost) // {{{
-{ VectorData<double> data(inputs,model->InputSize(),inputs.size()/model->InputSize());
-  GuidedVectorData<double,vector<double> > testdata(data,results);
-  double cost=model->Cost(testdata,0.1);
-  if (cost>maxcost)
-  { cerr << "Cost=" << cost << ">" << maxcost << endl;
-    return false;
-  }
-  RLSimpleGame drnim(3,0);
+  RLNimGame drnim(3,0);
   vector<double> choices=model->Eval(drnim.State());
   if (choices[0]<=0.5d)
   { cerr << "Choice 0 wrong" << endl;
@@ -1585,7 +1543,6 @@ bool TestModel_RL1(vector<double> &inputs, vector<vector<double> > &results, Net
   }
   return true;
 } // }}}
-    
 bool TestRL1() // {{{
 { // Create player networks
   vector<Network*> models;
@@ -1593,43 +1550,427 @@ bool TestRL1() // {{{
   models.push_back(Network::Parse("6->[[21*[all]],[2*[all]]]"));
 
   // Initialize
-  RLSimpleGame drnim(21,1);
-  vector<vector<double> > inputs;
-  vector<vector<vector<double> > > results;
-  for (size_t player=0; player<drnim.Players(); ++player)
-  {  inputs.push_back(vector<double>());
-     results.push_back(vector<vector<double> >());
-  }
+  RLNimGame drnim(21,1);
 
   // Train players
   for (size_t rep=0; rep<200; ++rep)
-    TrainDrNim(inputs,results,models,0.0d);
+    drnim.TrainRLGame(models,20,1,0.0,0.01);
 
   // Test models
   bool result=true;
-  //// Play game
-  //while (!drnim.Done())
-  //{ cout << "DrNim State: " << drnim.GameString() << endl;
-  //  if (drnim.Turn()==0)
-  //  { cout << "Choose 1 to 3: " << flush;
-  //    int c;
-  //    cin >> c;
-  //    vector<double> cinput;
-  //    cinput.push_back(c==2?1.0d:0.0d);
-  //    cinput.push_back(c==3?1.0d:0.0d);
-  //    drnim.Step(cinput);
-  //  }
-  //  else
-  //    drnim.Step(models[drnim.Turn()]->Eval(drnim.State()));
-  //}
-  //cout << "Score: " << drnim.GameString() << endl;
-  //cout << "Score 0: " << drnim.Score()[0] << endl;
-  //cout << "Score 1: " << drnim.Score()[1] << endl;
-  //result=result && drnim.Score()[0]<drnim.Score()[1];
-  result=result && TestModel_RL1(inputs[0],results[0],models[0],0.5d);
-  result=result && TestModel_RL1(inputs[1],results[1],models[1],0.5d);
+  result=result && TestModel_RL1(models[0],0.5d);
+  result=result && TestModel_RL1(models[1],0.5d);
   return result;
 } // }}}
+
+class Wall // {{{
+{ public:
+   Wall(size_t x, size_t y, char dir)
+   : myX(x)
+   , myY(y)
+   , myDir(dir)
+   {}
+
+   bool operator<(const Wall &rhs) const // {{{
+   { return (myX<rhs.myX || (myX==rhs.myX && myY<rhs.myY));
+   } // }}}
+
+   size_t myX, myY; 
+   char myDir;
+}; // }}}
+class MazeMap // {{{
+{ public:
+    MazeMap(size_t width, size_t height) // {{{
+    : myWidth(width)
+    , myHeight(height)
+    { // Map cell bits info: 0: wall right, 1: wall down, 8: visited.
+      myMap=new char[myWidth*myHeight];
+      myDistMap=new size_t[myWidth*myHeight];
+
+      // Prims maze-generating algorithm
+      // Init all walls
+      for (size_t x=0; x<myWidth; ++x)
+      { for (size_t y=0; y<myHeight; ++y)
+        { myMap[x+y*myWidth]=0x03; // Set walls
+        }
+      }
+      // Set starting tile as visited
+      size_t startX=rand()%myWidth;
+      size_t startY=rand()%myHeight;
+      myMap[startX+startY*myWidth]=myMap[startX+startY*myWidth]|0x80; // Set visited
+      // Add posible walls
+      set<Wall> myWalls;
+      if (startX>0)
+        myWalls.insert(Wall(startX-1,startY,'R'));
+      if (startX+1<myWidth)
+        myWalls.insert(Wall(startX,startY,'R'));
+      if (startY>0)
+        myWalls.insert(Wall(startX,startY-1,'D'));
+      if (startY+1<myHeight)
+        myWalls.insert(Wall(startX,startY,'D'));
+      // Remove random walls to unvisited tiles until connected map
+      while (!myWalls.empty())
+      { set<Wall>::iterator wall=myWalls.begin();
+        std::advance(wall,rand()%myWalls.size());
+        size_t wallX2, wallY2;
+        if (wall->myDir=='R')
+        { wallX2=wall->myX+1;
+          wallY2=wall->myY;
+        }
+        else
+        { wallX2=wall->myX;
+          wallY2=wall->myY+1;
+        }
+        if (!(myMap[wall->myX+wall->myY*myWidth]&0x80) ||
+            !(myMap[wallX2+wallY2*myWidth]&0x80))
+        { // Remove wall
+          if (wall->myDir=='R')
+            myMap[wall->myX+wall->myY*myWidth]=myMap[wall->myX+wall->myY*myWidth]&~2;
+          else
+            myMap[wall->myX+wall->myY*myWidth]=myMap[wall->myX+wall->myY*myWidth]&~1;
+          myMap[wall->myX+wall->myY*myWidth]=myMap[wall->myX+wall->myY*myWidth]|0x80;
+          if (wall->myX>0)
+            myWalls.insert(Wall(wall->myX-1,wall->myY,'R'));
+          if (wall->myX+1<myWidth)
+            myWalls.insert(Wall(wall->myX,wall->myY,'R'));
+          if (wall->myY>0)
+            myWalls.insert(Wall(wall->myX,wall->myY-1,'D'));
+          if (wall->myY+1<myHeight)
+            myWalls.insert(Wall(wall->myX,wall->myY,'D'));
+          myMap[wallX2+wallY2*myWidth]=myMap[wallX2+wallY2*myWidth]|0x80;
+          if (wallX2>0)
+            myWalls.insert(Wall(wallX2-1,wallY2,'R'));
+          if (wallX2+1<myWidth)
+            myWalls.insert(Wall(wallX2,wallY2,'R'));
+          if (wallY2>0)
+            myWalls.insert(Wall(wallX2,wallY2-1,'D'));
+          if (wallY2+1<myHeight)
+            myWalls.insert(Wall(wallX2,wallY2,'D'));
+        }
+        myWalls.erase(wall);
+      }
+      // Calculate distance to goal for all tiles
+      InitDistMap();
+
+
+    } // }}}
+    virtual ~MazeMap() // {{{
+    { delete [] myMap;
+      delete [] myDistMap;
+    } // }}}
+
+    size_t GetWidth() const { return myWidth; }
+    size_t GetHeight() const { return myHeight; }
+    bool WallRight(size_t x, size_t y) const { return myMap[x+y*myWidth]&0x2; }
+    bool WallDown(size_t x, size_t y) const { return myMap[x+y*myWidth]&0x1; }
+    size_t Dist(size_t x, size_t y) const { return myDistMap[x+y*myWidth]; }
+    bool IsGoal(size_t x, size_t y) const { return Dist(x,y)==0; }
+
+  private:
+    void InitDistMap() // {{{
+    { // Calculate Dists to goal using Dijkstras Shortest Path Algorithm
+      for (size_t i=0; i<myWidth*myHeight; ++i)
+        myDistMap[i]=myWidth+myHeight+1; // Set too high
+
+      size_t goalx=rand()%myWidth;
+      size_t goaly=rand()%myHeight;
+      vector<pair<size_t,size_t>> worklist;
+      worklist.push_back(pair<size_t,size_t>(goalx,goaly));
+      myDistMap[goalx+goaly*myWidth]=0;
+
+      while (!worklist.empty())
+      { pair<size_t,size_t> pos=worklist[0];
+        worklist.erase(worklist.begin());
+        // Can we go left?
+        if (pos.first>0 && !(myMap[pos.first-1+pos.second*myWidth]&2) &&
+            myDistMap[pos.first-1+pos.second*myWidth]>1+myDistMap[pos.first+pos.second*myWidth])
+        { myDistMap[pos.first-1+pos.second*myWidth]=1+myDistMap[pos.first+pos.second*myWidth];
+          worklist.push_back(pair<size_t,size_t>(pos.first-1,pos.second));
+        }
+        // Can we go right?
+        if (pos.first+1<myWidth && !(myMap[pos.first+pos.second*myWidth]&2) &&
+            myDistMap[pos.first+1+pos.second*myWidth]>1+myDistMap[pos.first+pos.second*myWidth])
+        { myDistMap[pos.first+1+pos.second*myWidth]=1+myDistMap[pos.first+pos.second*myWidth];
+          worklist.push_back(pair<size_t,size_t>(pos.first+1,pos.second));
+        }
+        // Can we go up?
+        if (pos.second>0 && !(myMap[pos.first+(pos.second-1)*myWidth]&1) &&
+            myDistMap[pos.first+(pos.second-1)*myWidth]>1+myDistMap[pos.first+pos.second*myWidth])
+        { myDistMap[pos.first+(pos.second-1)*myWidth]=1+myDistMap[pos.first+pos.second*myWidth];
+          worklist.push_back(pair<size_t,size_t>(pos.first,pos.second-1));
+        }
+        // Can we go down?
+        if (pos.second+1<myHeight && !(myMap[pos.first+pos.second*myWidth]&1) &&
+            myDistMap[pos.first+(pos.second+1)*myWidth]>1+myDistMap[pos.first+pos.second*myWidth])
+        { myDistMap[pos.first+(pos.second+1)*myWidth]=1+myDistMap[pos.first+pos.second*myWidth];
+          worklist.push_back(pair<size_t,size_t>(pos.first,pos.second+1));
+        }
+      }
+    } // }}}
+    size_t myWidth;
+    size_t myHeight;
+    char *myMap;
+    size_t *myDistMap;
+}; // }}}
+class RLMazeGame : public RLGame // {{{
+{ public: 
+    RLMazeGame(const MazeMap *maze) // {{{
+    : myMaze(maze)
+    , myX(rand()%maze->GetWidth())
+    , myY(rand()%maze->GetHeight())
+    , myDir(rand()%4)
+    , myTime(100)
+    //, myScore(0)
+    { Init();
+    } // }}}
+    RLMazeGame(const RLMazeGame &rhs) // {{{
+    : myMaze(rhs.myMaze)
+    , myX(rhs.myX)
+    , myY(rhs.myY)
+    , myDir(rhs.myDir)
+    , myTime(rhs.myTime)
+    //, myScore(rhs.myScore)
+    { myHistory=rhs.myHistory;
+    } // }}}
+    virtual ~RLMazeGame() { }
+  
+    RLGame *Copy() const { return new RLMazeGame(*this); }
+    void Init() // {{{
+    { myTime=100;
+      myX=rand()%myMaze->GetWidth();
+      myY=rand()%myMaze->GetHeight();
+      myDir=rand()%4;
+
+      // Set initial score
+      //myScore=myMaze->GetWidth()*myMaze->GetHeight()-myMaze->Dist(myX,myY);
+      // Reset History
+      myHistory.clear();
+      while (myHistory.size()<100)
+        myHistory.push_back(0.0);
+    } // }}}
+    void SetStart(size_t x, size_t y, size_t t=100) // {{{
+    { myX=x;
+      myY=y;
+      myTime=t;
+    } // }}}
+    vector<double> State() // {{{
+    { vector<double> result;
+      result.push_back(1.0d);
+      // Make State
+      result.push_back((double)(myDir&0x01?1.0d:0.0d));
+      result.push_back((double)(myDir&0x02?1.0d:0.0d));
+      for (int dy=-3; dy<=3; ++dy)
+      { for (int dx=-3; dx<3; ++dx)
+        { if (dx+myX<0 || dy+myY<0 || dx+myX>=myMaze->GetWidth() || dy+myY>=myMaze->GetHeight()) // Out of map
+          { result.push_back(1.0d);
+            result.push_back(1.0d);
+            result.push_back(0.0d);
+          }
+          else
+          { result.push_back((double)(myMaze->WallDown(dx+myX,dy+myY)?1.0d:0.0d));
+            result.push_back((double)(myMaze->WallRight(dx+myX,dy+myY)?1.0d:0.0d));
+            result.push_back((double)(myMaze->IsGoal(dx+myX,dy+myY)?1.0d:0.0d));
+          }
+        }
+      }
+      // Add 100 features of history
+      while (myHistory.size()>100)
+        myHistory.pop_back();
+      while(myHistory.size()<100)
+        myHistory.push_back(0.0);
+      result.insert(result.end(),myHistory.begin(),myHistory.end());
+      //Done
+      return result;
+    } // }}}
+    vector<vector<double> > Choices() // {{{
+    { vector<vector<double> > choices;
+      // Add Choices
+      // Check if move left is possible
+      if (myX>0 && !(myMaze->WallRight(myX-1,myY)))
+      { vector<double> move;
+        move.push_back(1.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        choices.push_back(move);
+      }
+      // Check if move up is possible
+      if (myY>0 && !(myMaze->WallDown(myX,myY-1)))
+      { vector<double> move;
+        move.push_back(0.0d);
+        move.push_back(1.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        choices.push_back(move);
+      }
+      // Check if move right is possible
+      if (myX+1<myMaze->GetWidth() && !(myMaze->WallRight(myX,myY)))
+      { vector<double> move;
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(1.0d);
+        move.push_back(0.0d);
+        choices.push_back(move);
+      }
+      // Check if move down is possible
+      if (myY+1<myMaze->GetHeight() && !(myMaze->WallDown(myX,myY)))
+      { vector<double> move;
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(1.0d);
+        choices.push_back(move);
+      }
+      return choices;
+    } // }}}
+    void Step(const std::vector<double> &inputs) // {{{
+    { if (myTime==0)
+        return;
+      --myTime;
+      //cout << "Stepping from " << myX << "," << myY << "->";
+      // Perform Step
+      int move=-1;
+      double move_confidence=-1.0;
+      // Check if move left is possible and more confident
+      if (inputs[0]>=move_confidence && myX>0 && !(myMaze->WallRight(myX-1,myY)))
+      { move=0;
+        move_confidence=inputs[0];
+      }
+      // Check if move up is possible and more confident
+      if (inputs[1]>=move_confidence && myY>0 && !(myMaze->WallDown(myX,myY-1)))
+      { move=1;
+        move_confidence=inputs[1];
+      }
+      // Check if move right is possible and more confident
+      if (inputs[2]>=move_confidence && myX+1<myMaze->GetWidth() && !(myMaze->WallRight(myX,myY)))
+      { move=2;
+        move_confidence=inputs[2];
+      }
+      // Check if move down is possible and more confident
+      if (inputs[3]>=move_confidence && myY+1<myMaze->GetHeight() && !(myMaze->WallDown(myX,myY)))
+      { move=3;
+        move_confidence=inputs[3];
+      }
+
+      // Perform move
+      if (move==0)
+      { --myX;
+        myDir=0;
+      }
+      else if (move==1)
+      { --myY;
+        myDir=1;
+      }
+      else if (move==2)
+      { ++myX;
+        myDir=2;
+      }
+      else if (move==3)
+      { ++myY;
+        myDir=3;
+      }
+      else
+      { stringstream ss;
+        ss << GameString() << endl
+           << "RLMazeGame::Step: Unable to move at " << myX << "," << myY;
+        throw ss.str();
+      }
+
+      // Update score
+      double curscore=myMaze->GetWidth()*myMaze->GetHeight()-myMaze->Dist(myX,myY);
+      //if (curscore>myScore)
+      //  myScore=curscore;
+
+      // Add choices to history
+      myHistory.insert(myHistory.begin(),inputs.begin(),inputs.end());
+      while(myHistory.size()>100)
+        myHistory.pop_back();
+      //cout << myX << "," << myY << "." << endl;
+    } // }}}
+    size_t Players() const { return 1; }
+    size_t Turn() const { return 0; }
+    bool Done() const { return myTime==0 || myMaze->IsGoal(myX,myY); }
+    vector<double> Score() const // {{{
+    { vector<double> result;
+      result.push_back(myMaze->IsGoal(myX,myY)?1.0d+myTime:0.0d);
+      return result;
+    } // }}}
+  
+    string GameString() const // {{{
+    { stringstream result;
+      result << " ";
+      for (size_t x=0;x<myMaze->GetWidth(); ++x)
+        result << "___";
+      result << endl;
+      for (size_t y=0;y<myMaze->GetHeight(); ++y)
+      { result << "|";
+        for (size_t x=0;x<myMaze->GetWidth(); ++x)
+        { if (x==myX && y==myY)
+            result << "*";
+          else if (myMaze->IsGoal(x,y))
+            result << "G";
+          else if (myMaze->WallDown(x,y))
+            result << "_";
+          else
+            result << " ";
+
+          if (myMaze->WallRight(x,y) && myMaze->WallDown(x,y))
+            result << "_|";
+          else if (myMaze->WallRight(x,y))
+            result << " |";
+          else if (myMaze->WallDown(x,y))
+            result << "__";
+          else
+            result << "  ";
+        }
+        result << endl;
+      }
+      //result << "DrNim state: " << myN << ", " << myTurn << ", " << myWinner << endl;
+      return result.str();
+    } // }}}
+    size_t Dist() { return myMaze->Dist(myX,myY); }
+  
+  private:
+    const MazeMap *myMaze;
+    vector<double> myHistory;
+    size_t myX;
+    size_t myY;
+    char myDir;
+    size_t myTime;
+}; // }}}
+bool TestRL2() // {{{
+{ // Create game
+  srand(200); // Fix (random) map
+  MazeMap mazemap(10,10);
+  RLMazeGame maze(&mazemap);
+  maze.Init();
+
+  // Create player networks
+  vector<Network*> models;
+  models.push_back(Network::Parse("229->[[4*[all]]]"));
+
+  // Train model
+  for (size_t rep=0; rep<20; ++rep)
+    maze.TrainRLGame(models,100,100,0.0,0.01);
+
+  // Test model from top-left position
+  maze.Init();
+  maze.SetStart(0,0);
+
+  while (!maze.Done())
+  { //cout << "Step: " << endl << maze.GameString() << endl;
+    maze.Step(models[maze.Turn()]->Eval(maze.State()));
+  }
+  bool result=maze.Dist()==0;
+
+  // Clean up
+  while (!models.empty())
+  { delete models.back();
+    models.pop_back();
+  }
+  return result;
+} // }}}
+
 int main()
 { try
   { 
@@ -1665,6 +2006,10 @@ int main()
       cout << "TestRL1 - Reinforcement Learning of DrNim succeeded" << endl;
     else
       cout << "TestRL1 - Reinforcement Learning of DrNim failed" << endl;
+    if (TestRL2())
+      cout << "TestRL2 - Reinforcement Learning of Maze solving succeded" << endl;
+    else
+      cout << "TestRL2 - Reinforcement Learning of Maze solving failed" << endl;
   }
   catch (const std::string &error)
   { cerr << "Error: " << error << endl;
