@@ -1554,7 +1554,10 @@ bool TestRL1() // {{{
 
   // Train players
   for (size_t rep=0; rep<200; ++rep)
+  { if (!(rep%10))
+      cout << "." << flush;
     drnim.TrainRLGame(models,20,1,0.0,0.01);
+  }
 
   // Test models
   bool result=true;
@@ -1951,7 +1954,9 @@ bool TestRL2() // {{{
 
   // Train model
   for (size_t rep=0; rep<20; ++rep)
+  { cout << "." << flush;
     maze.TrainRLGame(models,100,100,0.0,0.01);
+  }
 
   // Test model from top-left position
   maze.Init();
@@ -1974,26 +1979,9 @@ bool TestRL2() // {{{
 int main()
 { try
   { 
-    if (TestLinRM1())
-      cout << "TestLinRM1 succeeded" << endl;
-    else
-      cout << "TestLinRM1 failed" << endl;
-    if (TestLinRM2())
-      cout << "TestLinRM2 succeeded" << endl;
-    else
-      cout << "TestLinRM2 failed" << endl;
-    if (TestLogRM1())
-      cout << "TestLogRM1 succeeded" << endl;
-    else
-      cout << "TestLogRM1 failed" << endl;
-    if (TestNetwork0())
-      cout << "TestNetwork0 succeeded" << endl;
-    else
-      cout << "TestNetwork0 failed" << endl;
-    if (TestNetwork1())
-      cout << "TestNetwork1 succeeded" << endl;
-    else
-      cout << "TestNetwork1 failed" << endl;
+    cout << "TestLinRM1 " << (TestLinRM1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestLinRM2 " << (TestLinRM2()?string("succeeded"):string("failed")) << endl;
+    cout << "TestLogRM1 " << (TestLogRM1()?string("succeeded"):string("failed")) << endl;
     //if (TestLogRM2())
     //  cout << "TestLogRM2 succeeded" << endl;
     //else
@@ -2002,14 +1990,10 @@ int main()
     //  cout << "TestOVA1 succeeded" << endl;
     //else
     //  cout << "TestOVA1 failed" << endl;
-    if (TestRL1())
-      cout << "TestRL1 - Reinforcement Learning of DrNim succeeded" << endl;
-    else
-      cout << "TestRL1 - Reinforcement Learning of DrNim failed" << endl;
-    if (TestRL2())
-      cout << "TestRL2 - Reinforcement Learning of Maze solving succeded" << endl;
-    else
-      cout << "TestRL2 - Reinforcement Learning of Maze solving failed" << endl;
+    cout << "TestNetwork0 " << (TestNetwork0()?string("succeeded"):string("failed")) << endl;
+    cout << "TestNetwork1 " << (TestNetwork1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestRL1 - Reinforcement Learning of DrNim " << (TestRL1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestRL2 - Reinforcement Learning of Maze solving " << (TestRL2()?string("succeeded"):string("failed")) << endl;
   }
   catch (const std::string &error)
   { cerr << "Error: " << error << endl;
