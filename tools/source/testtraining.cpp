@@ -5,6 +5,7 @@
 #include <slowml/onevsall.hpp>
 #include <slowml/reinforcementlearning.hpp>
 #include <cmath>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 using namespace std;
@@ -1976,7 +1977,244 @@ bool TestRL2() // {{{
   return result;
 } // }}}
 
-int main()
+class RLSnake : public RLGame // {{{
+{ public:
+    RLSnake(size_t w, size_t h) // {{{
+    : myWidth(w)
+    , myHeight(h)
+    , myTime(200)
+    , myPoints(0)
+    { Init();
+    } // }}}
+    virtual ~RLSnake() { }
+
+    RLGame *Copy() const { return new RLSnake(*this); }
+    void Init() // {{{
+    { myLength=3;
+      myTail.clear();
+      myHeadX=3+rand()%(myWidth-6);
+      myHeadY=3+rand()%(myHeight-6);
+      myFruitX=1+rand()%(myWidth-2);
+      myFruitY=1+rand()%(myHeight-2);
+      myPoints=0;
+      myDir=rand()%4;
+      myDead=false;
+      myTime==200;
+    } // }}}
+    vector<double> State() // {{{
+    { vector<double> result;
+      result.push_back(1.0d);
+      // Make State
+      result.push_back((double)(myDir&0x01?1.0d:0.0d));
+      result.push_back((double)(myDir&0x02?1.0d:0.0d));
+      for (int y=0; y<myHeight; ++y)
+      { for (int x=0; x<myWidth; ++x)
+        { if (x==myHeadX && y==myHeadY) // Head
+          { result.push_back(1.0d);
+            result.push_back(0.0d);
+            result.push_back(0.0d);
+          }
+          else if (find(myTail.begin(),myTail.end(),pair<size_t,size_t>(x,y))!=myTail.end()) // Tail
+          { result.push_back(0.0d);
+            result.push_back(1.0d);
+            result.push_back(0.0d);
+          }
+          else if (x==myFruitX && y==myFruitY) // Fruit
+          { result.push_back(0.0d);
+            result.push_back(0.0d);
+            result.push_back(1.0d);
+          }
+          else // Empty
+          { result.push_back(0.0d);
+            result.push_back(0.0d);
+            result.push_back(0.0d);
+          }
+        }
+      }
+      //Done
+      return result;
+    } // }}}
+    vector<vector<double> > Choices() // {{{
+    { vector<vector<double> > choices;
+      // Add Choices
+      // Add up
+      { vector<double> move;
+        move.push_back(1.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        choices.push_back(move);
+      }
+      // Add Down
+      { vector<double> move;
+        move.push_back(0.0d);
+        move.push_back(1.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        choices.push_back(move);
+      }
+      // Add Left
+      { vector<double> move;
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(1.0d);
+        move.push_back(0.0d);
+        choices.push_back(move);
+      }
+      // Add Right
+      { vector<double> move;
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(0.0d);
+        move.push_back(1.0d);
+        choices.push_back(move);
+      }
+      return choices;
+    } // }}}
+    void Step(const std::vector<double> &inputs) // {{{
+    { if (myDead || myTime==0)
+        return;
+      --myTime;
+      //cout << "Stepping from " << myX << "," << myY << "->";
+      // Determine movce
+      double move_confidence=-1.0d;
+      // Check if move up
+      if (inputs[0]>=move_confidence)
+      { myDir=0;
+        move_confidence=inputs[0];
+      }
+      // Check if move down
+      if (inputs[1]>=move_confidence)
+      { myDir=1;
+        move_confidence=inputs[1];
+      }
+      // Check if move left
+      if (inputs[2]>=move_confidence)
+      { myDir=2;
+        move_confidence=inputs[2];
+      }
+      // Check if move right
+      if (inputs[3]>=move_confidence)
+      { myDir=3;
+        move_confidence=inputs[3];
+      }
+
+      // Move tail
+      while (myTail.size()>=myLength)
+        myTail.pop_back();
+
+      myTail.insert(myTail.begin(),pair<size_t,size_t>(myHeadX,myHeadY));
+
+      // Perform move
+      if (myDir==0)
+        --myHeadY;
+      else if (myDir==1)
+        ++myHeadY;
+      else if (myDir==2)
+        --myHeadX;
+      else if (myDir==3)
+        ++myHeadX;
+      else
+      { stringstream ss;
+        ss << GameString() << endl
+           << "RLSnake::Step: Bad direction: " << myDir;
+        throw ss.str();
+      }
+
+      if (find(myTail.begin(),myTail.end(),pair<size_t,size_t>(myHeadX,myHeadY))!=myTail.end())
+        myDead=true;
+      if (myHeadX<=0 || myHeadX>=myWidth || myHeadY<=0 || myHeadY>=myHeight)
+        myDead=true;
+
+      if (myHeadX==myFruitX && myHeadY==myFruitY)
+      { ++myPoints;
+        ++myLength;
+        while ((myHeadX==myFruitX && myHeadY==myFruitY) ||
+               (find(myTail.begin(),myTail.end(),pair<size_t,size_t>(myFruitX,myFruitY))!=myTail.end()))
+        { myFruitX=1+rand()%(myWidth-2);
+          myFruitY=1+rand()%(myHeight-2);
+        }
+      }
+    } // }}}
+    size_t Players() const { return 1; }
+    size_t Turn() const { return 0; }
+    bool Done() const { return myDead || myTime==0; }
+    vector<double> Score() const // {{{
+    { vector<double> result;
+      result.push_back((double)myPoints-(double)myTime/1000.0);
+      return result;
+    } // }}}
+  
+    string GameString() const // {{{
+    { stringstream result;
+      result << string(myWidth+2,'_') << endl;
+      for (size_t y=0;y<myHeight; ++y)
+      { result << "|";
+        for (size_t x=0;x<myWidth; ++x)
+        { if (x==myHeadX && y==myHeadY)
+            result << "O";
+          else if (x==myFruitX && y==myFruitY)
+            result << "$";
+          else if (find(myTail.begin(),myTail.end(),pair<size_t,size_t>(x,y))!=myTail.end())
+            result << "o";
+          else
+            result << " ";
+        }
+        result << '|' << endl;
+      }
+      result << string(myWidth+2,'-');
+      return result.str();
+    } // }}}
+
+  private:
+    size_t myWidth;
+    size_t myHeight;
+    size_t myTime;
+    size_t myLength;
+    vector<pair<size_t,size_t> > myTail;
+    size_t myHeadX;
+    size_t myHeadY;
+    size_t myFruitX;
+    size_t myFruitY;
+    size_t myPoints;
+    bool myDead;
+    char myDir;
+}; // }}}
+bool TestRL3() // {{{
+{ // Create game
+  srand(200); // Fix (random) map
+  RLSnake game(10,10);
+  cout << "Input width: " << game.State().size() << endl;
+  // Create player networks
+  vector<Network*> models;
+  models.push_back(Network::Parse("303->[[100*[all]],[4*[all]]]"));
+
+  // Train model
+  for (size_t rep=0; rep<50; ++rep)
+  { game.TrainRLGame(models,500,100,0.0,0.01);
+    auto gc=game.Copy();
+    cout << "Points: " << gc->Eval(models)[0] << endl;
+    delete gc;
+  }
+
+  // Test model from top-left position
+  game.Init();
+  size_t step=0;
+  for (size_t step=0; !game.Done(); ++step)
+  { cout << "Step: " << step << " score: " << game.Score()[0] << endl
+         << game.GameString() << endl;
+    game.Step(models[game.Turn()]->Eval(game.State()));
+  }
+  bool result=game.Score()[0]>=10.0;
+
+  // Clean up
+  while (!models.empty())
+  { delete models.back();
+    models.pop_back();
+  }
+  return result;
+} // }}}
+int main() // {{{
 { try
   { 
     cout << "TestLinRM1 " << (TestLinRM1()?string("succeeded"):string("failed")) << endl;
@@ -1994,9 +2232,10 @@ int main()
     cout << "TestNetwork1 " << (TestNetwork1()?string("succeeded"):string("failed")) << endl;
     cout << "TestRL1 - Reinforcement Learning of DrNim " << (TestRL1()?string("succeeded"):string("failed")) << endl;
     cout << "TestRL2 - Reinforcement Learning of Maze solving " << (TestRL2()?string("succeeded"):string("failed")) << endl;
+    cout << "TestRL3 - Reinforcement Learning of Snake game " << (TestRL3()?string("succeeded"):string("failed")) << endl;
   }
   catch (const std::string &error)
   { cerr << "Error: " << error << endl;
   }
-}
+} // }}}
 
