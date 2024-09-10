@@ -1982,8 +1982,7 @@ class RLSnake : public RLGame // {{{
     RLSnake(size_t w, size_t h) // {{{
     : myWidth(w)
     , myHeight(h)
-    , myTime(200)
-    , myPoints(0)
+    , myPoints(0.0d)
     { Init();
     } // }}}
     virtual ~RLSnake() { }
@@ -1996,10 +1995,9 @@ class RLSnake : public RLGame // {{{
       myHeadY=3+rand()%(myHeight-6);
       myFruitX=1+rand()%(myWidth-2);
       myFruitY=1+rand()%(myHeight-2);
-      myPoints=0;
+      myPoints=0.0d;
       myDir=rand()%4;
       myDead=false;
-      myTime==200;
     } // }}}
     vector<double> State() // {{{
     { vector<double> result;
@@ -2072,9 +2070,8 @@ class RLSnake : public RLGame // {{{
       return choices;
     } // }}}
     void Step(const std::vector<double> &inputs) // {{{
-    { if (myDead || myTime==0)
+    { if (myDead)
         return;
-      --myTime;
       //cout << "Stepping from " << myX << "," << myY << "->";
       // Determine movce
       double move_confidence=-1.0d;
@@ -2123,11 +2120,11 @@ class RLSnake : public RLGame // {{{
 
       if (find(myTail.begin(),myTail.end(),pair<size_t,size_t>(myHeadX,myHeadY))!=myTail.end())
         myDead=true;
-      if (myHeadX<=0 || myHeadX>=myWidth || myHeadY<=0 || myHeadY>=myHeight)
+      if (myHeadX<0 || myHeadX>=myWidth || myHeadY<0 || myHeadY>=myHeight)
         myDead=true;
 
       if (myHeadX==myFruitX && myHeadY==myFruitY)
-      { ++myPoints;
+      { myPoints+=1.0d;
         ++myLength;
         while ((myHeadX==myFruitX && myHeadY==myFruitY) ||
                (find(myTail.begin(),myTail.end(),pair<size_t,size_t>(myFruitX,myFruitY))!=myTail.end()))
@@ -2135,13 +2132,15 @@ class RLSnake : public RLGame // {{{
           myFruitY=1+rand()%(myHeight-2);
         }
       }
+      myPoints+=0.001d;
+      myPoints=myPoints*1.001;
     } // }}}
     size_t Players() const { return 1; }
     size_t Turn() const { return 0; }
-    bool Done() const { return myDead || myTime==0; }
+    bool Done() const { return myDead; }
     vector<double> Score() const // {{{
     { vector<double> result;
-      result.push_back((double)myPoints-(double)myTime/1000.0);
+      result.push_back(myPoints);
       return result;
     } // }}}
   
@@ -2169,14 +2168,13 @@ class RLSnake : public RLGame // {{{
   private:
     size_t myWidth;
     size_t myHeight;
-    size_t myTime;
     size_t myLength;
     vector<pair<size_t,size_t> > myTail;
-    size_t myHeadX;
-    size_t myHeadY;
+    int myHeadX;
+    int myHeadY;
     size_t myFruitX;
     size_t myFruitY;
-    size_t myPoints;
+    double myPoints;
     bool myDead;
     char myDir;
 }; // }}}
@@ -2184,23 +2182,44 @@ bool TestRL3() // {{{
 { // Create game
   srand(200); // Fix (random) map
   RLSnake game(10,10);
-  cout << "Input width: " << game.State().size() << endl;
+  //cout << "Input width: " << game.State().size() << endl;
   // Create player networks
   vector<Network*> models;
   models.push_back(Network::Parse("303->[[100*[all]],[4*[all]]]"));
 
   // Train model
-  for (size_t rep=0; rep<50; ++rep)
-  { game.TrainRLGame(models,500,100,0.0,0.01);
+  for (size_t rep=0; rep<20; ++rep)
+  { game.TrainRLGame(models,500,500,0.0,0.01,10,true);
     auto gc=game.Copy();
-    cout << "Points: " << gc->Eval(models)[0] << endl;
+    cout << "Points after 10 steps: " << gc->Eval(models,10)[0] << endl;
+    delete gc;
+  }
+  // Train model
+  for (size_t rep=0; rep<20; ++rep)
+  { game.TrainRLGame(models,500,500,0.0,0.01,20,true);
+    auto gc=game.Copy();
+    cout << "Points after 20 steps: " << gc->Eval(models,20)[0] << endl;
+    delete gc;
+  }
+  // Train model
+  for (size_t rep=0; rep<20; ++rep)
+  { game.TrainRLGame(models,500,500,0.0,0.01,30,true);
+    auto gc=game.Copy();
+    cout << "Points after 30 steps: " << gc->Eval(models,30)[0] << endl;
+    delete gc;
+  }
+  // Train model
+  for (size_t rep=0; rep<20; ++rep)
+  { game.TrainRLGame(models,500,500,0.0,0.01,50,true);
+    auto gc=game.Copy();
+    cout << "Points after 50 steps: " << gc->Eval(models,30)[0] << endl;
     delete gc;
   }
 
   // Test model from top-left position
   game.Init();
   size_t step=0;
-  for (size_t step=0; !game.Done(); ++step)
+  for (size_t step=0; !game.Done() && step<100; ++step)
   { cout << "Step: " << step << " score: " << game.Score()[0] << endl
          << game.GameString() << endl;
     game.Step(models[game.Turn()]->Eval(game.State()));

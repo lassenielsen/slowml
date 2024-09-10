@@ -5,17 +5,20 @@
 #include <sstream>
 #include <iostream>
 #include <thread>
+#include <mutex>
 
 class RLGame;
 
 struct MakeRLDataArg // {{{
-{ MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit);
+{ MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<int>> &states);
   const RLGame &myGame;
   const std::vector<Network*> &myModels;
   std::vector<std::vector<double> > myInputs;
   std::vector<std::vector<std::vector<double> > > myResults;
   size_t mySims;
   size_t myLimit;
+  std::mutex &myMutex;
+  vector<set<int> > &myStates;
 }; // }}}
 void MakeRLData(MakeRLDataArg *arg);
 
@@ -59,58 +62,18 @@ class RLGame
       return res;
     } // }}}
 
-///    //! MakeRLData simulates the game to create trainingdata
-///    void MakeRLData(std::vector<Network*> &models, std::vector<std::vector<double> > &inputs, std::vector<std::vector<std::vector<double> > > &results, size_t limit=100) const // {{{
-///    { RLGame *state=Copy();
-///      while (!state->Done())
-///      { vector<double> input=state->State();
-///        size_t player=state->Turn();
-///        vector<double> choices=models[player]->Eval(input);
-///    
-///        // Get chosen next state and its score with current model
-///        RLGame *nstate=state->Copy();
-///        nstate->Step(choices);
-///        vector<double> scores=nstate->Eval(models,limit);
-///        vector<double> right_choices=choices;
-///        double best_score=RelativeScore(scores,player);
-///        double worst_score=best_score;
-///        // Compare possible choices, and select best
-///        vector<vector<double> > achoices=state->Choices();
-///        for (size_t a=0; a<achoices.size(); ++a)
-///        { 
-///          RLGame *astate=state->Copy();
-///          astate->Step(achoices[a]);
-///          vector<double> ascores=astate->Eval(models,limit);
-///          double ascore=RelativeScore(ascores,player);
-///          if (ascore>best_score)
-///          { 
-///            best_score=ascore;
-///            right_choices=achoices[a];
-///          }
-///          else if (ascore<worst_score)
-///            worst_score=ascore;
-///          // Clean up
-///          delete astate;
-///        }
-///        if (best_score>worst_score) // Is training meaningful?
-///        { inputs[player].insert(inputs[player].end(),input.begin(),input.end());
-///          results[player].push_back(right_choices);
-///        }
-///        delete state;
-///        state=nstate;
-///       }
-///       delete state;
-///    
-///       return;
-///    } // }}}
-///
     //! Train networks to play game using Reinforcement Learning
-    void TrainRLGame(vector<Network*> &models, size_t sims, size_t reps, double ainv, double lambda, size_t limit=100) const // {{{
+    void TrainRLGame(vector<Network*> &models, size_t sims, size_t reps, double ainv, double lambda, size_t limit=100, bool debug=false) const // {{{
     { vector<vector<double> > inputs;
       vector<vector<vector<double> > > results;
+
+      std::mutex mtx;
+      vector<set<int> > statehashes;
+
       for (size_t player=0; player<Players(); ++player)
       {  inputs.push_back(vector<double>());
          results.push_back(vector<vector<double> >());
+         statehashes.push_back(set<int>());
       }
 
       // Start threads to generate trainingdata    
@@ -119,7 +82,7 @@ class RLGame
       vector<thread> threads;
       // Start threads
       for (size_t core=0; core<cores; ++core)
-      { MakeRLDataArg *arg=new MakeRLDataArg(*this,models,sims*(core+1)/cores-sims*core/cores,limit);
+      { MakeRLDataArg *arg=new MakeRLDataArg(*this,models,sims*(core+1)/cores-sims*core/cores,limit,mtx,statehashes);
         args.push_back(arg);
         threads.push_back(thread(MakeRLData,arg));
       }
@@ -132,13 +95,6 @@ class RLGame
         }
         delete args[core];
       }
-      //// Play game from different positions
-      //for (size_t sim=0; sim<sims; ++sim)
-      //{ RLGame *g=Copy();
-      //  g->Init();
-      //  g->MakeRLData(models,inputs,results);
-      //  delete g;
-      //}
     
       // Train models on trainingdata
       for (size_t player=0; player<Players(); ++player)
@@ -148,17 +104,20 @@ class RLGame
         double precost=models[player]->Cost(trainingdata,lambda);
         models[player]->FitParameters(trainingdata,alpha,lambda,reps,false);
         double postcost=models[player]->Cost(trainingdata,lambda);
-        cout << "TrainRLGame: Player " << player << " on " << results[player].size() << " truths from cost " << precost << " to " << postcost << endl;
+        if (debug)
+          cout << "TrainRLGame: Player " << player << " on " << results[player].size() << " truths from cost " << precost << " to " << postcost << endl;
       }
     } // }}}
 
 };
 
-MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit) // {{{
+MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<int> > &states) // {{{
 : myGame(game)
 , myModels(models)
 , mySims(sims)
 , myLimit(limit)
+, myMutex(m)
+, myStates(states)
 { for (size_t player=0; player<myGame.Players(); ++player)
   {  myInputs.push_back(vector<double>());
      myResults.push_back(vector<vector<double> >());
@@ -174,6 +133,31 @@ double RelativeScore(const std::vector<double> &scores, size_t player) // {{{
   return scores[player]-oscore;
 } // }}}
 
+// simple variant of ELF hash ... but you could use any general-purpose hashing algorithm here instead
+int GetHashCodeForBytes(const char * bytes, int numBytes) // {{{
+{
+   unsigned long h = 0, g;
+   for (int i=0; i<numBytes; i++)
+   {
+      h = ( h << 4 ) + bytes[i];
+      if (g = h & 0xF0000000L) {h ^= g >> 24;}
+      h &= ~g;
+   }
+   return h;
+} // }}}
+
+int GetHashForDouble(double v) // {{{
+{
+   return GetHashCodeForBytes((const char *)&v, sizeof(v));
+} // }}}
+
+int GetHashForDoubleVector(const vector<double> & v) // {{{
+{
+   int ret = 0;
+   for (int i=0; i<v.size(); i++) ret += ((i+1)*(GetHashForDouble(v[i])));
+   return ret;
+} // }}}
+
 //! MakeRLData plays the RLGame using the provided models as players to create trainingdata
 void MakeRLData(MakeRLDataArg *arg) // {{{
 { for (size_t sim=0; sim<arg->mySims; ++sim)
@@ -183,6 +167,15 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
     { vector<double> input=state->State();
       size_t player=state->Turn();
       vector<double> choices=arg->myModels[player]->Eval(input);
+
+      int hash=GetHashForDoubleVector(input);
+      arg->myMutex.lock();
+      bool old=arg->myStates[player].find(hash)!=arg->myStates[player].end();
+      arg->myMutex.unlock();
+      if (old) // Old state
+      { state->Step(choices);
+        continue;
+      }
 
       // Get chosen next state and its score with current model
       RLGame *nstate=state->Copy();
