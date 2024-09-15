@@ -10,7 +10,7 @@
 class RLGame;
 
 struct MakeRLDataArg // {{{
-{ MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<int>> &states);
+{ MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<vector<double>>> &states);
   const RLGame &myGame;
   const std::vector<Network*> &myModels;
   std::vector<std::vector<double> > myInputs;
@@ -18,9 +18,32 @@ struct MakeRLDataArg // {{{
   size_t mySims;
   size_t myLimit;
   std::mutex &myMutex;
-  vector<set<int> > &myStates;
+  vector<set<vector<double> > > &myStates;
 }; // }}}
 void MakeRLData(MakeRLDataArg *arg);
+
+void DebugTrainingSet(const vector<double> &inputs, const vector<double> &outputs) // {{{
+{ cout << "State: " << endl;
+  for (size_t y=0; y<7; ++y)
+  { for (size_t x=0; x<7; ++x)
+    { if (x==3 && y==3)
+        cout << "O";
+      else if (x>3 || (x==3 && y>3))
+        cout << ((inputs[52+7*x+y]>=0.5)?string("$"):(inputs[7*x+y+4]>=0.5d)?string("o"):string("."));
+      else
+        cout << ((inputs[53+7*x+y]>=0.5)?string("$"):(inputs[7*x+y+5]>=0.5d)?string("o"):string("."));
+    }
+    cout << endl;
+  }
+  cout << "Fruit Up: " << inputs[1] << endl
+       << "Fruit Down: " << inputs[2] << endl
+       << "Fruit Left: " << inputs[3] << endl
+       << "Fruit Down: " << inputs[4] << endl;
+
+  cout << "Choice: " << ((outputs[0]>=outputs[1] && outputs[0]>=outputs[2] && outputs[0]>=outputs[3])?string("Up"):
+                        (outputs[1]>=outputs[2] && outputs[1]>=outputs[3])?string("Down"):
+                        (outputs[2]>=outputs[3])?string("Left"):string("Right")) << endl;
+} // }}}
 
 class RLGame
 { public:
@@ -68,12 +91,12 @@ class RLGame
       vector<vector<vector<double> > > results;
 
       std::mutex mtx;
-      vector<set<int> > statehashes;
+      vector<set<vector<double>> > statehashes;
 
       for (size_t player=0; player<Players(); ++player)
       {  inputs.push_back(vector<double>());
          results.push_back(vector<vector<double> >());
-         statehashes.push_back(set<int>());
+         statehashes.push_back(set<vector<double> >());
       }
 
       // Start threads to generate trainingdata    
@@ -95,7 +118,7 @@ class RLGame
         }
         delete args[core];
       }
-    
+
       // Train models on trainingdata
       for (size_t player=0; player<Players(); ++player)
       { double alpha=ainv;
@@ -111,7 +134,7 @@ class RLGame
 
 };
 
-MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<int> > &states) // {{{
+MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<vector<double> > > &states) // {{{
 : myGame(game)
 , myModels(models)
 , mySims(sims)
@@ -133,31 +156,6 @@ double RelativeScore(const std::vector<double> &scores, size_t player) // {{{
   return scores[player]-oscore;
 } // }}}
 
-// simple variant of ELF hash ... but you could use any general-purpose hashing algorithm here instead
-int GetHashCodeForBytes(const char * bytes, int numBytes) // {{{
-{
-   unsigned long h = 0, g;
-   for (int i=0; i<numBytes; i++)
-   {
-      h = ( h << 4 ) + bytes[i];
-      if (g = h & 0xF0000000L) {h ^= g >> 24;}
-      h &= ~g;
-   }
-   return h;
-} // }}}
-
-int GetHashForDouble(double v) // {{{
-{
-   return GetHashCodeForBytes((const char *)&v, sizeof(v));
-} // }}}
-
-int GetHashForDoubleVector(const vector<double> & v) // {{{
-{
-   int ret = 0;
-   for (int i=0; i<v.size(); i++) ret += ((i+1)*(GetHashForDouble(v[i])));
-   return ret;
-} // }}}
-
 //! MakeRLData plays the RLGame using the provided models as players to create trainingdata
 void MakeRLData(MakeRLDataArg *arg) // {{{
 { for (size_t sim=0; sim<arg->mySims; ++sim)
@@ -168,9 +166,17 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
       size_t player=state->Turn();
       vector<double> choices=arg->myModels[player]->Eval(input);
 
-      int hash=GetHashForDoubleVector(input);
       arg->myMutex.lock();
-      bool old=arg->myStates[player].find(hash)!=arg->myStates[player].end();
+      //cout << "Known states: " << arg->myStates[player].size() << endl;
+      bool old=arg->myStates[player].find(input)!=arg->myStates[player].end();
+      if (!old)
+        arg->myStates[player].insert(input);
+      //else
+      //{ cout << "Known state: [";
+      //  for (size_t i=0; i<input.size(); ++i)
+      //    cout << "," << input[i];
+      //  cout << "]" << endl;
+      //}
       arg->myMutex.unlock();
       if (old) // Old state
       { state->Step(choices);
@@ -203,7 +209,12 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
         delete astate;
       }
       if (best_score>worst_score) // Is training meaningful?
-      { arg->myInputs[player].insert(arg->myInputs[player].end(),input.begin(),input.end());
+      { 
+        // Debug training set
+        //arg->myMutex.lock();
+        //DebugTrainingSet(input,right_choices);
+        //arg->myMutex.unlock();
+        arg->myInputs[player].insert(arg->myInputs[player].end(),input.begin(),input.end());
         arg->myResults[player].push_back(right_choices);
       }
       delete state;
