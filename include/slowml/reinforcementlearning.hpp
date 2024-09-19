@@ -1,6 +1,7 @@
 #pragma once
 #include <slowml/network.hpp>
 #include <slowml/vectordata.hpp>
+#include <slowml/guidedvectordata.hpp>
 #include <vector>
 #include <sstream>
 #include <iostream>
@@ -184,9 +185,7 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
       }
 
       // Get chosen next state and its score with current model
-      RLGame *nstate=state->Copy();
-      nstate->Step(choices);
-      vector<double> scores=nstate->Eval(arg->myModels,arg->myLimit);
+      vector<double> scores=state->Eval(arg->myModels,arg->myLimit+1);
       vector<double> right_choices=choices;
       double best_score=RelativeScore(scores,player);
       double worst_score=best_score;
@@ -217,8 +216,7 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
         arg->myInputs[player].insert(arg->myInputs[player].end(),input.begin(),input.end());
         arg->myResults[player].push_back(right_choices);
       }
-      delete state;
-      state=nstate;
+      state->Step(right_choices);
     }
     delete state;
   }

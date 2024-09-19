@@ -6,7 +6,7 @@ class LinearRegressionModel : public ShallowModel<double> // {{{
     LinearRegressionModel();
     virtual ~LinearRegressionModel();
 
-    std::string Type() { return "Linear Regression Model"; }
+    std::string Type() const { return "Linear Regression Model"; }
     double Eval(const Data<double> &instances, size_t pos) const;
     double Eval(const std::vector<double> &instance) const;
     double SquareDistance(const double &lhs, const double &rhs);

@@ -11,7 +11,7 @@ class Network : public Model<std::vector<double> > // {{{
     Network(size_t input_size); // TODO DSL FOR NETWORK DESIGN
     virtual ~Network();
 
-    std::string Type() { return "Network Model"; }
+    std::string Type() const { return "Network Model"; }
 
     size_t AddNode(size_t layer, const std::vector<size_t> &inputs);
     Node &GetNode(size_t layer, size_t node) { return myNodes.at(layer).at(node); }

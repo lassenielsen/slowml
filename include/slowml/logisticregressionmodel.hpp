@@ -6,7 +6,7 @@ class LogisticRegressionModel : public ShallowModel<double> // {{{
     LogisticRegressionModel();
     virtual ~LogisticRegressionModel();
 
-    std::string Type() { return "Logistic Regression Model"; }
+    std::string Type() const { return "Logistic Regression Model"; }
     double Eval(const Data<double> &instances, size_t pos) const;
     double Eval(const std::vector<double> &instance) const;
     double LogDistance(double guess, double truth);
