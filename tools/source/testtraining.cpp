@@ -2206,7 +2206,7 @@ class RLSnake : public RLGame // {{{
 bool TestRL3() // {{{
 { // Create game
   srand(200); // Fix (random) map
-  RLSnake game(10,10);
+  RLSnake game(30,20);
   //cout << "Input width: " << game.State().size() << endl;
   // Create player networks
   vector<Network*> models;
@@ -2214,22 +2214,21 @@ bool TestRL3() // {{{
 
   // Train model
   for (size_t rep=0; rep<20; ++rep)
-  { game.TrainRLGame(models,10000,1000,0.0,0.0,50,true);
+  { game.TrainRLGame(models,500,500,0.0,0.0,500,false);
     auto gc=game.Copy();
     srand(200); // Fix (random) map
-    cout << "Points after 500 steps: " << gc->Eval(models,500)[0] << endl;
+    cout << "Iteration " << rep << ": Points after 500 steps: " << gc->Eval(models,500)[0] << endl;
     delete gc;
   }
 
-  ofstream fout("snake.mod");
-  models[0]->SaveParameters(fout);
-  fout.close();
+  // Test model
   game.Init();
   size_t step=0;
-  for (size_t step=0; !game.Done() && step<100; ++step)
+  for (size_t step=0; !game.Done() && step<500; ++step)
   { cout << "Step: " << step << " score: " << game.Score()[0] << endl
          << game.GameString() << endl;
     game.Step(models[game.Turn()]->Eval(game.State()));
+    cin.get();
   }
   bool result=game.Score()[0]>=10.0;
 
@@ -2240,27 +2239,28 @@ bool TestRL3() // {{{
   }
   return result;
 } // }}}
+
 int main() // {{{
 { try
   { 
-    //cout << "TestLinRM1 - Simpel Linear Regression Model training " << flush
-    //     << (TestLinRM1()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestLinRM2 - A bit larger Linear Regression Model training " << flush
-    //     << (TestLinRM2()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestLogRM1 - Simpel Logistic Regression Model training " << flush
-    //     << (TestLogRM1()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestLogRM2 - A bit larger Logistic Regression Model training " << flush
-    //     << (TestLogRM2()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestOVA1 - Testing One Versus All Model training " << flush
-    //     << (TestOVA1()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestNetwork0 - Simpel Neural Network Model (2 hidden nodes) training" << flush
-    //     << (TestNetwork0()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestNetwork1 - A bit larger Neural Network Model (6+6 hidden nodes) training " << flush
-    //     << (TestNetwork1()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestRL1 - Reinforcement Learning of DrNim " << flush
-    //     << (TestRL1()?string("succeeded"):string("failed")) << endl;
-    //cout << "TestRL2 - Reinforcement Learning of Maze solving " << flush
-    //     << (TestRL2()?string("succeeded"):string("failed")) << endl;
+    cout << "TestLinRM1 - Simpel Linear Regression Model training " << flush
+         << (TestLinRM1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestLinRM2 - A bit larger Linear Regression Model training " << flush
+         << (TestLinRM2()?string("succeeded"):string("failed")) << endl;
+    cout << "TestLogRM1 - Simpel Logistic Regression Model training " << flush
+         << (TestLogRM1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestLogRM2 - A bit larger Logistic Regression Model training " << flush
+         << (TestLogRM2()?string("succeeded"):string("failed")) << endl;
+    cout << "TestOVA1 - Testing One Versus All Model training " << flush
+         << (TestOVA1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestNetwork0 - Simpel Neural Network Model (2 hidden nodes) training" << flush
+         << (TestNetwork0()?string("succeeded"):string("failed")) << endl;
+    cout << "TestNetwork1 - A bit larger Neural Network Model (6+6 hidden nodes) training " << flush
+         << (TestNetwork1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestRL1 - Reinforcement Learning of DrNim " << flush
+         << (TestRL1()?string("succeeded"):string("failed")) << endl;
+    cout << "TestRL2 - Reinforcement Learning of Maze solving " << flush
+         << (TestRL2()?string("succeeded"):string("failed")) << endl;
     cout << "TestRL3 - Reinforcement Learning of Snake game "
          << flush <<(TestRL3()?string("succeeded"):string("failed")) << endl;
   }
@@ -2268,4 +2268,3 @@ int main() // {{{
   { cerr << "Error: " << error << endl;
   }
 } // }}}
-
