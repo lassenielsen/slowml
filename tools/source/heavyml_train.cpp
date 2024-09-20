@@ -83,6 +83,7 @@ int main(int argc, char **argv)
     size_t gd_repetitions=50000;
     double gd_alphainv=100;
     double gd_lambda=1;
+    double gd_maxalphainv=5.0;
     bool option_debug=false;
     bool option_continue=false;
     Network *model=NULL;
@@ -117,6 +118,16 @@ int main(int argc, char **argv)
         ss >> gd_lambda;
         if (gd_lambda<=0)
           throw string("--gd_lambda must be succeeded by positive number");
+      }
+      else if (string("--gd_maxalphainv")==argv[arg] || string("-gdms")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--gd_maxalphainv must be succeeded by a value");
+        stringstream ss;
+        ss << argv[arg];
+        ss >> gd_maxalphainv;
+        if (gd_maxalphainv<=0)
+          throw string("--gd_maxalphainv must be succeeded by positive value");
       }
       else if ((string("--model")==argv[arg] || string("-m")==argv[arg]) && model==NULL)
       { ++arg;
@@ -234,7 +245,7 @@ int main(int argc, char **argv)
     }
     GuidedVectorData<double,vector<double> > gdata(mapdata,truths);
     cout << "Training " << model->CountParameters() << " parameters" << endl;
-    model->FitParameters(gdata,gd_alphainv,gd_lambda,gd_repetitions,option_debug);
+    model->FitParameters(gdata,gd_alphainv,gd_lambda,gd_repetitions,gd_maxalphainv,option_debug);
     cout << "Training parameters done" << endl;
     cout << "Saving model parameters in " << modelfile << flush;
     ofstream fout(modelfile);

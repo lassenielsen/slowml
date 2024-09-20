@@ -45,7 +45,7 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
   double cost=0;
   if (alpha_inv==0.0)
   { alpha_dynamic=true;
-    alpha_inv=max_alphainv/16.0d;
+    alpha_inv=max_alphainv/16.00;
     cost=Cost(instances,lambda);
   }
   for (size_t r=0; r<repetitions; ++r)
@@ -82,7 +82,7 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
       }
       new_cost=tmp_cost;
       // Decrease alpha until decreasing cost
-      while ((new_cost>cost || (!tmp_cost==tmp_cost)) && alpha_inv<max_alphainv)
+      while ((new_cost>cost || new_cost!=new_cost) && alpha_inv<max_alphainv)
       { for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)+delta[p]/alpha_inv);
         alpha_inv*=2.0;
