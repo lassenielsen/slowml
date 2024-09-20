@@ -23,30 +23,7 @@ struct MakeRLDataArg // {{{
 }; // }}}
 void MakeRLData(MakeRLDataArg *arg);
 
-void DebugTrainingSet(const vector<double> &inputs, const vector<double> &outputs) // {{{
-{ cout << "State: " << endl;
-  for (size_t y=0; y<7; ++y)
-  { for (size_t x=0; x<7; ++x)
-    { if (x==3 && y==3)
-        cout << "O";
-      else if (x>3 || (x==3 && y>3))
-        cout << ((inputs[52+7*x+y]>=0.5)?string("$"):(inputs[7*x+y+4]>=0.5d)?string("o"):string("."));
-      else
-        cout << ((inputs[53+7*x+y]>=0.5)?string("$"):(inputs[7*x+y+5]>=0.5d)?string("o"):string("."));
-    }
-    cout << endl;
-  }
-  cout << "Fruit Up: " << inputs[1] << endl
-       << "Fruit Down: " << inputs[2] << endl
-       << "Fruit Left: " << inputs[3] << endl
-       << "Fruit Down: " << inputs[4] << endl;
-
-  cout << "Choice: " << ((outputs[0]>=outputs[1] && outputs[0]>=outputs[2] && outputs[0]>=outputs[3])?string("Up"):
-                        (outputs[1]>=outputs[2] && outputs[1]>=outputs[3])?string("Down"):
-                        (outputs[2]>=outputs[3])?string("Left"):string("Right")) << endl;
-} // }}}
-
-class RLGame
+class RLGame // {{{
 { public:
     virtual ~RLGame() {}
     //! Copy creates a copy of the current game state.
@@ -133,7 +110,7 @@ class RLGame
       }
     } // }}}
 
-};
+}; // }}}
 
 MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<vector<double> > > &states) // {{{
 : myGame(game)
@@ -168,16 +145,9 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
       vector<double> choices=arg->myModels[player]->Eval(input);
 
       arg->myMutex.lock();
-      //cout << "Known states: " << arg->myStates[player].size() << endl;
       bool old=arg->myStates[player].find(input)!=arg->myStates[player].end();
       if (!old)
         arg->myStates[player].insert(input);
-      //else
-      //{ cout << "Known state: [";
-      //  for (size_t i=0; i<input.size(); ++i)
-      //    cout << "," << input[i];
-      //  cout << "]" << endl;
-      //}
       arg->myMutex.unlock();
       if (old) // Old state
       { state->Step(choices);
@@ -209,10 +179,6 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
       }
       if (best_score>worst_score) // Is training meaningful?
       { 
-        // Debug training set
-        //arg->myMutex.lock();
-        //DebugTrainingSet(input,right_choices);
-        //arg->myMutex.unlock();
         arg->myInputs[player].insert(arg->myInputs[player].end(),input.begin(),input.end());
         arg->myResults[player].push_back(right_choices);
       }
