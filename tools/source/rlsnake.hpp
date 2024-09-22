@@ -16,10 +16,14 @@ class RLSnake : public RLGame // {{{
     void Init() // {{{
     { myLength=3;
       myTail.clear();
-      myHeadX=3+rand()%(myWidth-6);
-      myHeadY=3+rand()%(myHeight-6);
-      myFruitX=1+rand()%(myWidth-2);
-      myFruitY=1+rand()%(myHeight-2);
+      for (size_t i=0; i==0 || (i<100 && Dangerous(myHeadX,myHeadY)); ++i)
+      { myHeadX=3+rand()%(myWidth-6);
+        myHeadY=3+rand()%(myHeight-6);
+      }
+      for (size_t i=0; i==0 || (i<100 && ((myHeadX==myFruitX && myHeadY==myFruitY) || Dangerous(myFruitX,myFruitY))); ++i)
+      { myFruitX=1+rand()%(myWidth-2);
+        myFruitY=1+rand()%(myHeight-2);
+      }
       myPoints=0.0d;
       myDir=rand()%4;
       myDead=false;
@@ -163,8 +167,7 @@ class RLSnake : public RLGame // {{{
       if (myHeadX==myFruitX && myHeadY==myFruitY)
       { myPoints+=1.0d;
         ++myLength;
-        while ((myHeadX==myFruitX && myHeadY==myFruitY) ||
-               (Dangerous(myFruitX,myFruitY)))
+        for (size_t i=0; i==0 || (i<100 && ((myHeadX==myFruitX && myHeadY==myFruitY) || Dangerous(myFruitX,myFruitY))); ++i)
         { myFruitX=1+rand()%(myWidth-2);
           myFruitY=1+rand()%(myHeight-2);
         }
@@ -197,7 +200,7 @@ class RLSnake : public RLGame // {{{
           else if (x==myFruitX && y==myFruitY)
             result << "$";
           else if (Dangerous(x,y))
-            result << "o";
+            result << "#";
           else
             result << " ";
         }

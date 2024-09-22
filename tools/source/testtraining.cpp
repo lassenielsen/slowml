@@ -38,7 +38,7 @@ bool TestLinRM1() // {{{
   // FIT MODEL
   double alpha_inv=100.0;
   double lambda=0.0;
-  linrm.FitParameters(t_samples,alpha_inv,lambda,1500,false); // Fit
+  linrm.FitParameters(t_samples,alpha_inv,lambda,1500,5.0,false); // Fit
   // VALIDATE FIT
   if (abs(linrm.GetParameter(0)-1.0)>0.1)
   { cerr << "TestLinRM1 failed - Fitted first parameter is too far from 1: " << linrm.GetParameter(0) << endl;
@@ -291,7 +291,7 @@ bool TestLinRM2() // {{{
   // FIT MODEL
   double alpha_inv=100.0;
   double lambda=1.0;
-  linrm.FitParameters(t_samples,alpha_inv,lambda,1500,false); // Fit
+  linrm.FitParameters(t_samples,alpha_inv,lambda,1500,5.0,false); // Fit
   if (abs(linrm.GetParameter(0)+3.63)>0.1)
   { cerr << "TestLinRM2 failed - Fitted first parameter is too far from -3.63: " << linrm.GetParameter(0) << endl;
     return false;
@@ -531,7 +531,7 @@ bool TestLogRM1() // {{{
   //// FIT MODEL
   double alpha_inv=250.0;
   double lambda=0.0;
-  logrm.FitParameters(t_samples,alpha_inv,lambda,15000,false); // Fit
+  logrm.FitParameters(t_samples,alpha_inv,lambda,15000,5.0,false); // Fit
   //cout << "Fittet parameters: [" << logrm.GetParameter(0) << "," << logrm.GetParameter(1) << "," << logrm.GetParameter(2) << "]" << endl;
   //cout << "Fittet cost: " << logrm.Cost(t_samples,lambda) << endl;
   //// VALIDATE FIT
@@ -757,7 +757,7 @@ bool TestLogRM2() // {{{
   // FIT MODEL
   double alpha_inv=10.0;
   double lambda=1.0;
-  logrm.FitParameters(t_input,alpha_inv,lambda,5000,false); // Fit
+  logrm.FitParameters(t_input,alpha_inv,lambda,5000,5.0,false); // Fit
   //cout << "Fitted cost: " << logrm.Cost(t_input,lambda) << endl;
   // VALIDATE FIT
   //if (abs(logrm.GetParameter(0)-1.0)>0.1)
@@ -1027,11 +1027,9 @@ bool TestOVA1() // {{{
   mcmodel.AddParameter(0.0);
   // }}}
   // FIT MODEL
-  double alpha_inv=20.0;
-  double lambda=0.0;
-  mcmodel.FitParameters(t_samples,alpha_inv,lambda,1000000,false); // Fit
-  alpha_inv=0.0;
-  mcmodel.FitParameters(t_samples,alpha_inv,lambda,10000,false); // Fit
+  double alpha_inv=0.0;
+  double lambda=0.05;
+  mcmodel.FitParameters(t_samples,alpha_inv,lambda,100000,2.0d,true); // Fit
   cout << "Fitted cost: " << mcmodel.Cost(t_samples,lambda) << endl;
   // VALIDATE FIT
   //if (abs(mcmodel.GetParameter(0)-1.0)>0.1)
@@ -1158,7 +1156,7 @@ bool TestNetwork0() // {{{
   double alpha_inv=10.0;
   double lambda=0.0;
   for (size_t c=0; c<100; ++c)
-  { model.FitParameters(t_samples,alpha_inv,lambda,300,false); // Fit
+  { model.FitParameters(t_samples,alpha_inv,lambda,300,5.0,false); // Fit
     //cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Debug cost
   }
   //cout << "Eval after fit:" << endl << model.Eval(t_samples,0)[0] << endl;
@@ -1417,7 +1415,7 @@ bool TestNetwork1() // {{{
   double alpha_inv=0.0;
   double lambda=0.2;
   for (size_t c=0; c<100; ++c)
-  { model.FitParameters(t_samples,alpha_inv,lambda,100,false); // Fit
+  { model.FitParameters(t_samples,alpha_inv,lambda,100,5.0,false); // Fit
     //cout << "Cost: " << model.Cost(t_samples,lambda) << endl; // Cost
   }
   //// Test
@@ -1891,6 +1889,7 @@ class RLMazeGame : public RLGame // {{{
       { stringstream ss;
         ss << GameString() << endl
            << "RLMazeGame::Step: Unable to move at " << myX << "," << myY;
+        cerr << "Error: " << ss.str() << " - " << inputs[0] << ", " << inputs[1] << ", " << inputs[2] << ", " << inputs[3] << endl;
         throw ss.str();
       }
 
@@ -1995,29 +1994,31 @@ bool TestRL2() // {{{
 bool TestRL3() // {{{
 { // Create game
   srand(200); // Fix (random) map
-  RLSnake game(40,19);
+  RLSnake game(80,19);
   //cout << "Input width: " << game.State().size() << endl;
   // Create player networks
   vector<Network*> models;
   models.push_back(Network::Parse("101->[[4*[all]]]"));
 
+  double score=0.0d;
   // Train model
-  for (size_t rep=0; rep<30; ++rep)
+  for (size_t rep=0; rep<50 /*&& score<10.0d*/; ++rep)
   { auto gc=game.Copy();
     srand(200); // Fix (random) map
-    cout << "Iteration " << rep << ": Points after 500 steps: " << gc->Eval(models,500)[0] << endl;
+    score=gc->Eval(models,500)[0];
+    cout << "Iteration " << rep << ": Points after 500 steps: " << score << endl;
     delete gc;
-    game.TrainRLGame(models,100,500,0.0,0.0,200,false);
+    game.TrainRLGame(models,2000,500,0.0,0.0,200,false);
   }
 
   // Test model
-  game.Init();
+  srand(200); // Fix (random) map
   size_t step=0;
   for (size_t step=0; !game.Done() && step<500; ++step)
   { cout << "Step: " << step << " score: " << game.Score()[0] << endl
          << game.GameString() << endl;
     game.Step(models[game.Turn()]->Eval(game.State()));
-    cin.get();
+    this_thread::sleep_for(chrono::milliseconds(50));
   }
   bool result=game.Score()[0]>=10.0;
 
@@ -2042,7 +2043,7 @@ int main() // {{{
          << (TestLogRM2()?string("succeeded"):string("failed")) << endl;
     cout << "TestOVA1 - Testing One Versus All Model training " << flush
          << (TestOVA1()?string("succeeded"):string("failed")) << endl;
-    cout << "TestNetwork0 - Simpel Neural Network Model (2 hidden nodes) training" << flush
+    cout << "TestNetwork0 - Simpel Neural Network Model (2 hidden nodes) training " << flush
          << (TestNetwork0()?string("succeeded"):string("failed")) << endl;
     cout << "TestNetwork1 - A bit larger Neural Network Model (6+6 hidden nodes) training " << flush
          << (TestNetwork1()?string("succeeded"):string("failed")) << endl;

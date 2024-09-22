@@ -43,6 +43,8 @@ template<class Result> Model<Result>::~Model() // {{{
 template<class Result> void Model<Result>::FitParameters(GuidedData<double,Result> &instances, double &alpha_inv, double lambda, size_t repetitions, double max_alphainv, bool debug) // {{{
 { bool alpha_dynamic=false;
   double cost=0;
+  if (max_alphainv<=0)
+    max_alphainv=100.0d;
   if (alpha_inv==0.0)
   { alpha_dynamic=true;
     alpha_inv=max_alphainv/16.00;

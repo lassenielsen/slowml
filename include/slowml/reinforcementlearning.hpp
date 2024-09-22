@@ -103,7 +103,7 @@ class RLGame // {{{
         VectorData<double> data(inputs[player],models[player]->InputSize(),inputs[player].size()/models[player]->InputSize());
         GuidedVectorData<double,vector<double> > trainingdata(data,results[player]);
         double precost=models[player]->Cost(trainingdata,lambda);
-        models[player]->FitParameters(trainingdata,alpha,lambda,reps,false);
+        models[player]->FitParameters(trainingdata,alpha,lambda,reps,200.0,false);
         double postcost=models[player]->Cost(trainingdata,lambda);
         if (debug)
           cout << "TrainRLGame: Player " << player << " on " << results[player].size() << " truths from cost " << precost << " to " << postcost << endl;
