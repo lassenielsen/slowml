@@ -172,7 +172,10 @@ class RLSnake : public RLGame // {{{
           myFruitY=1+rand()%(myHeight-2);
         }
       }
-      myPoints+=((double)myLength)/1000.0d;
+      //Add points for staying alive
+      myPoints+=((double)myLength)/100000.0d;
+      myPoints+=((double)(myWidth-abs((long)(myHeadX-myFruitX))))/1000000.0d;
+      myPoints+=((double)(myHeight-abs((long)(myHeadY-myFruitY))))/1000000.0d;
     } // }}}
     size_t Players() const { return 1; }
     size_t Turn() const { return 0; }
@@ -201,6 +204,8 @@ class RLSnake : public RLGame // {{{
             result << "$";
           else if (Dangerous(x,y))
             result << "#";
+          else if (abs((long)x-myHeadX)<=3 && abs((long)y-myHeadY)<=3)
+            result << ".";
           else
             result << " ";
         }

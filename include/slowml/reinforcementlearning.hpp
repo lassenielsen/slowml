@@ -49,13 +49,24 @@ class RLGame // {{{
     virtual std::vector<double> Score() const=0;
 
 
+    /*! Step tells the game to proceed with the choices answered by the model whose turn it is.
+     ** A level of randomness is provided, where 0 meand no randomness, and 1 means very random.
+     */
+    virtual void Step(const std::vector<Network*> &models, double randomness=0.1) // {{{
+    { vector<double> choice=models[Turn()]->Eval(State());
+      // Add Randomness
+      for (size_t i=0; i<choice.size(); ++i)
+        choice[i]+=randomness*((double)((rand()%1000001)-500000))/1000000.0d;
+      // Perform step
+      Step(choice);
+    } // }}}
     /*! Eval is a function, that evaluates a model, and return the score for each player.
      ** Higher scores are better.
      */
     std::vector<double> Eval(const std::vector<Network*> &models, size_t limit=100) const // {{{
     { RLGame *g=Copy();
       while (0<limit && !g->Done())
-      { g->Step(models[g->Turn()]->Eval(g->State()));
+      { g->Step(models);
         --limit;
       }
       vector<double> res=g->Score();
@@ -150,7 +161,7 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
         arg->myStates[player].insert(input);
       arg->myMutex.unlock();
       if (old) // Old state
-      { state->Step(choices);
+      { state->Step(arg->myModels);
         continue;
       }
 

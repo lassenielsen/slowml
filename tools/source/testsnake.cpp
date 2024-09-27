@@ -21,7 +21,8 @@ bool TestSnake(const string &model_name, size_t width, size_t height) // {{{
   for (size_t step=0; !game.Done(); ++step)
   { cout << "Step: " << step << " score: " << game.Score()[0] << endl
          << game.GameString() << endl;
-    game.Step(models[game.Turn()]->Eval(game.State()));
+    // Perform step
+    game.RLGame::Step(models,0.1);
     this_thread::sleep_for(chrono::milliseconds(50));
   }
   bool result=game.Score()[0]>=10.0;

@@ -1029,7 +1029,7 @@ bool TestOVA1() // {{{
   // FIT MODEL
   double alpha_inv=0.0;
   double lambda=0.05;
-  mcmodel.FitParameters(t_samples,alpha_inv,lambda,100000,2.0d,true); // Fit
+  mcmodel.FitParameters(t_samples,alpha_inv,lambda,1000,2.0d,false); // Fit
   cout << "Fitted cost: " << mcmodel.Cost(t_samples,lambda) << endl;
   // VALIDATE FIT
   //if (abs(mcmodel.GetParameter(0)-1.0)>0.1)
@@ -1977,7 +1977,7 @@ bool TestRL2() // {{{
   maze.SetStart(0,0);
 
   while (!maze.Done())
-  { //cout << "Step: " << endl << maze.GameString() << endl;
+  { cout << "Step: " << endl << maze.GameString() << endl;
     maze.Step(models[maze.Turn()]->Eval(maze.State()));
   }
   bool result=maze.Dist()==0;
@@ -1998,27 +1998,32 @@ bool TestRL3() // {{{
   //cout << "Input width: " << game.State().size() << endl;
   // Create player networks
   vector<Network*> models;
-  models.push_back(Network::Parse("101->[[4*[all]]]"));
+  models.push_back(Network::Parse("101->[[30*[all]],[4*[all]]]"));
 
   double score=0.0d;
   // Train model
-  for (size_t rep=0; rep<50 /*&& score<10.0d*/; ++rep)
-  { auto gc=game.Copy();
+  for (size_t rep=0; rep<1000 /*&& score<10.0d*/; ++rep)
+  { game.TrainRLGame(models,1000,1000,0.0,0.001,2000,true);
+    auto gc=game.Copy();
     srand(200); // Fix (random) map
     score=gc->Eval(models,500)[0];
     cout << "Iteration " << rep << ": Points after 500 steps: " << score << endl;
     delete gc;
-    game.TrainRLGame(models,2000,500,0.0,0.0,200,false);
+
+    // Save Model
+    ofstream fout("snake.mod");
+    models[0]->SaveParameters(fout);
+    fout.close();
   }
 
   // Test model
   srand(200); // Fix (random) map
   size_t step=0;
   for (size_t step=0; !game.Done() && step<500; ++step)
-  { cout << "Step: " << step << " score: " << game.Score()[0] << endl
-         << game.GameString() << endl;
+  { //cout << "Step: " << step << " score: " << game.Score()[0] << endl
+    //     << game.GameString() << endl;
     game.Step(models[game.Turn()]->Eval(game.State()));
-    this_thread::sleep_for(chrono::milliseconds(50));
+    //this_thread::sleep_for(chrono::milliseconds(50));
   }
   bool result=game.Score()[0]>=10.0;
 
