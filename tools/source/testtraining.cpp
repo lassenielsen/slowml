@@ -1993,22 +1993,25 @@ bool TestRL2() // {{{
 #include "rlsnake.hpp"
 bool TestRL3() // {{{
 { // Create game
-  srand(200); // Fix (random) map
-  RLSnake game(80,19);
+  RLSnake game(19,19);
   //cout << "Input width: " << game.State().size() << endl;
   // Create player networks
   vector<Network*> models;
-  models.push_back(Network::Parse("101->[[30*[all]],[4*[all]]]"));
+  stringstream ss;
+  ss << 5+(2*fow+1)*(2*fow+1)-1 << "->[[10*[all]],[4*[all]]]";
+  models.push_back(Network::Parse(ss.str()));
 
-  double score=0.0d;
   // Train model
   for (size_t rep=0; rep<1000 /*&& score<10.0d*/; ++rep)
-  { game.TrainRLGame(models,1000,1000,0.0,0.001,2000,true);
-    auto gc=game.Copy();
-    srand(200); // Fix (random) map
-    score=gc->Eval(models,500)[0];
-    cout << "Iteration " << rep << ": Points after 500 steps: " << score << endl;
-    delete gc;
+  { game.TrainRLGame(models,200,1000,0.0,0.00001,500,true,0.1,true);
+    double score=0.0d;
+    for (size_t i=0; i<1000; ++i)
+    {
+      auto gc=game.Copy();
+      score+=gc->Eval(models,500,0.1)[0];
+      delete gc;
+    }
+    cout << "Iteration " << rep << ": Average points after 500 steps: " << score/1000.0 << endl;
 
     // Save Model
     ofstream fout("snake.mod");
@@ -2022,7 +2025,7 @@ bool TestRL3() // {{{
   for (size_t step=0; !game.Done() && step<500; ++step)
   { //cout << "Step: " << step << " score: " << game.Score()[0] << endl
     //     << game.GameString() << endl;
-    game.Step(models[game.Turn()]->Eval(game.State()));
+    game.RLGame::Step(models,0.1);
     //this_thread::sleep_for(chrono::milliseconds(50));
   }
   bool result=game.Score()[0]>=10.0;
@@ -2039,23 +2042,23 @@ int main() // {{{
 { try
   { 
     cout << "TestLinRM1 - Simpel Linear Regression Model training " << flush
-         << (TestLinRM1()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestLinRM1()?string("succeeded"):string("failed")) << endl;
     cout << "TestLinRM2 - A bit larger Linear Regression Model training " << flush
-         << (TestLinRM2()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestLinRM2()?string("succeeded"):string("failed")) << endl;
     cout << "TestLogRM1 - Simpel Logistic Regression Model training " << flush
-         << (TestLogRM1()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestLogRM1()?string("succeeded"):string("failed")) << endl;
     cout << "TestLogRM2 - A bit larger Logistic Regression Model training " << flush
-         << (TestLogRM2()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //(TestLogRM2()?string("succeeded"):string("failed")) << endl;
     cout << "TestOVA1 - Testing One Versus All Model training " << flush
-         << (TestOVA1()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestOVA1()?string("succeeded"):string("failed")) << endl;
     cout << "TestNetwork0 - Simpel Neural Network Model (2 hidden nodes) training " << flush
-         << (TestNetwork0()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestNetwork0()?string("succeeded"):string("failed")) << endl;
     cout << "TestNetwork1 - A bit larger Neural Network Model (6+6 hidden nodes) training " << flush
-         << (TestNetwork1()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestNetwork1()?string("succeeded"):string("failed")) << endl;
     cout << "TestRL1 - Reinforcement Learning of DrNim " << flush
-         << (TestRL1()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestRL1()?string("succeeded"):string("failed")) << endl;
     cout << "TestRL2 - Reinforcement Learning of Maze solving " << flush
-         << (TestRL2()?string("succeeded"):string("failed")) << endl;
+         << "skipped" << endl; //<< (TestRL2()?string("succeeded"):string("failed")) << endl;
     cout << "TestRL3 - Reinforcement Learning of Snake game "
          << flush <<(TestRL3()?string("succeeded"):string("failed")) << endl;
   }

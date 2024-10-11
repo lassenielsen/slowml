@@ -18,13 +18,15 @@ bool TestSnake(const string &model_name, size_t width, size_t height) // {{{
   inet.close();
 
   size_t step=0;
-  for (size_t step=0; !game.Done(); ++step)
+  for (step=0; !game.Done(); ++step)
   { cout << "Step: " << step << " score: " << game.Score()[0] << endl
          << game.GameString() << endl;
     // Perform step
     game.RLGame::Step(models,0.1);
     this_thread::sleep_for(chrono::milliseconds(50));
   }
+  cout << "Step: " << step << " score: " << game.Score()[0] << endl
+       << game.GameString() << endl;
   bool result=game.Score()[0]>=10.0;
 
   // Clean up
@@ -38,14 +40,15 @@ bool TestSnake(const string &model_name, size_t width, size_t height) // {{{
 int main(int argc, char **argv) // {{{
 { try
   { if (argc<2)
-      cout << "Usage: " << argv[0] << " <snake model filename>" << endl;
-    else
-    { cout << "TestRL3 - Testing snake model " << argv[1] << endl;
-      TestSnake(argv[1],80,19);
+    { cout << "Usage: " << argv[0] << " <snake model filename>" << endl;
+      return 0;
     }
+    cout << "TestRL3 - Testing snake model " << argv[1] << endl;
+    return TestSnake(argv[1],19,19);
   }
   catch (const string &s)
   { cout << "Error: " << s << endl;
+    return -1;
   }
 } // }}}
 

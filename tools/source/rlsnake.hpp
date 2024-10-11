@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <sstream>
 
+#define fow 6
+
 class RLSnake : public RLGame // {{{
 { public:
     RLSnake(size_t w, size_t h) // {{{
@@ -14,7 +16,7 @@ class RLSnake : public RLGame // {{{
 
     RLGame *Copy() const { return new RLSnake(*this); }
     void Init() // {{{
-    { myLength=3;
+    { myLength=30;
       myTail.clear();
       for (size_t i=0; i==0 || (i<100 && Dangerous(myHeadX,myHeadY)); ++i)
       { myHeadX=3+rand()%(myWidth-6);
@@ -27,6 +29,7 @@ class RLSnake : public RLGame // {{{
       myPoints=0.0d;
       myDir=rand()%4;
       myDead=false;
+      myBonus=myWidth*myHeight;
     } // }}}
     vector<double> State() // {{{
     { vector<double> result;
@@ -36,40 +39,10 @@ class RLSnake : public RLGame // {{{
       result.push_back(myFruitX>myHeadX?1.0d:0.0d); // Fruit right
       result.push_back(myFruitY<myHeadY?1.0d:0.0d); // Fruit up
       result.push_back(myFruitY>myHeadY?1.0d:0.0d); // Fruit down
-      for (int x=myHeadX-3; x<=myHeadX+3; ++x)
-        for (int y=myHeadY-3; y<=myHeadY+3; ++y)
+      for (int x=myHeadX-fow; x<=myHeadX+fow; ++x)
+        for (int y=myHeadY-fow; y<=myHeadY+fow; ++y)
           if (x!=myHeadX || y!=myHeadY)
             result.push_back(Dangerous(x,y)?1.0d:0.0d); // Tile is dangerous
-      for (int x=myHeadX-3; x<=myHeadX+3; ++x)
-        for (int y=myHeadY-3; y<=myHeadY+3; ++y)
-          if (x!=myHeadX || y!=myHeadY)
-            result.push_back((x==myFruitX && y==myFruitY)?1.0d:0.0d); // Fruit position
-      //result.push_back((double)(myDir&0x01?1.0d:0.0d));
-      //result.push_back((double)(myDir&0x02?1.0d:0.0d));
-      //for (int y=0; y<myHeight; ++y)
-      //{ for (int x=0; x<myWidth; ++x)
-      //  { if (x==myHeadX && y==myHeadY) // Head
-      //    { result.push_back(1.0d);
-      //      result.push_back(0.0d);
-      //      result.push_back(0.0d);
-      //    }
-      //    else if (find(myTail.begin(),myTail.end(),pair<size_t,size_t>(x,y))!=myTail.end()) // Tail
-      //    { result.push_back(0.0d);
-      //      result.push_back(1.0d);
-      //      result.push_back(0.0d);
-      //    }
-      //    else if (x==myFruitX && y==myFruitY) // Fruit
-      //    { result.push_back(0.0d);
-      //      result.push_back(0.0d);
-      //      result.push_back(1.0d);
-      //    }
-      //    else // Empty
-      //    { result.push_back(0.0d);
-      //      result.push_back(0.0d);
-      //      result.push_back(0.0d);
-      //    }
-      //  }
-      //}
       //Done
       return result;
     } // }}}
@@ -166,6 +139,8 @@ class RLSnake : public RLGame // {{{
 
       if (myHeadX==myFruitX && myHeadY==myFruitY)
       { myPoints+=1.0d;
+        myPoints+=((double)myBonus)/(myWidth*myHeight*10);
+        myBonus=myWidth*myHeight;
         ++myLength;
         for (size_t i=0; i==0 || (i<100 && ((myHeadX==myFruitX && myHeadY==myFruitY) || Dangerous(myFruitX,myFruitY))); ++i)
         { myFruitX=1+rand()%(myWidth-2);
@@ -173,22 +148,27 @@ class RLSnake : public RLGame // {{{
         }
       }
       //Add points for staying alive
-      myPoints+=((double)myLength)/100000.0d;
-      myPoints+=((double)(myWidth-abs((long)(myHeadX-myFruitX))))/1000000.0d;
-      myPoints+=((double)(myHeight-abs((long)(myHeadY-myFruitY))))/1000000.0d;
+      //myPoints+=((double)myLength)/100000.0d;
+      //myPoints+=((double)(myWidth-abs((long)(myHeadX-myFruitX))))/1000000.0d;
+      //myPoints+=((double)(myHeight-abs((long)(myHeadY-myFruitY))))/1000000.0d;
+      if (myBonus>0)
+        --myBonus;
     } // }}}
     size_t Players() const { return 1; }
     size_t Turn() const { return 0; }
     bool Done() const { return myDead; }
     bool Dangerous(int x, int y) const // {{{
     { return (x<0 || y<0 || x>=myWidth || y>=myHeight
-          || (x>=10 && y>=3 && x<12 && y<myHeight-3)
-          || (x>=myWidth-12 && y>=3 && x<myWidth-10 && y<myHeight-3)
+          //|| (x>=10 && y>=3 && x<12 && y<myHeight-3)
+          //|| (x>=myWidth-12 && y>=3 && x<myWidth-10 && y<myHeight-3)
           || find(myTail.begin(),myTail.end(),pair<size_t,size_t>(x,y))!=myTail.end());
+    } // }}}
+    bool Visible(int x, int y) const // {{{
+    { return abs(x-myHeadX)<=fow && abs(y-myHeadY)<=fow;
     } // }}}
     vector<double> Score() const // {{{
     { vector<double> result;
-      result.push_back(myPoints);
+      result.push_back(myPoints-(myDead?10.0:0.0));
       return result;
     } // }}}
   
@@ -204,7 +184,7 @@ class RLSnake : public RLGame // {{{
             result << "$";
           else if (Dangerous(x,y))
             result << "#";
-          else if (abs((long)x-myHeadX)<=3 && abs((long)y-myHeadY)<=3)
+          else if (Visible(x,y))
             result << ".";
           else
             result << " ";
@@ -219,6 +199,7 @@ class RLSnake : public RLGame // {{{
     size_t myWidth;
     size_t myHeight;
     size_t myLength;
+    size_t myBonus;
     vector<pair<size_t,size_t> > myTail;
     int myHeadX;
     int myHeadY;

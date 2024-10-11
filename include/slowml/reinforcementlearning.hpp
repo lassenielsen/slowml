@@ -11,7 +11,7 @@
 class RLGame;
 
 struct MakeRLDataArg // {{{
-{ MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<vector<double>>> &states);
+{ MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, double randomness, std::mutex &m, vector<set<vector<double>>> &states, bool multiple_occurences);
   const RLGame &myGame;
   const std::vector<Network*> &myModels;
   std::vector<std::vector<double> > myInputs;
@@ -20,6 +20,8 @@ struct MakeRLDataArg // {{{
   size_t myLimit;
   std::mutex &myMutex;
   vector<set<vector<double> > > &myStates;
+  bool myMultipleOccurences;
+  double myRandomness;
 }; // }}}
 void MakeRLData(MakeRLDataArg *arg);
 
@@ -52,7 +54,7 @@ class RLGame // {{{
     /*! Step tells the game to proceed with the choices answered by the model whose turn it is.
      ** A level of randomness is provided, where 0 meand no randomness, and 1 means very random.
      */
-    virtual void Step(const std::vector<Network*> &models, double randomness=0.1) // {{{
+    void Step(const std::vector<Network*> &models, double randomness) // {{{
     { vector<double> choice=models[Turn()]->Eval(State());
       // Add Randomness
       for (size_t i=0; i<choice.size(); ++i)
@@ -63,10 +65,10 @@ class RLGame // {{{
     /*! Eval is a function, that evaluates a model, and return the score for each player.
      ** Higher scores are better.
      */
-    std::vector<double> Eval(const std::vector<Network*> &models, size_t limit=100) const // {{{
+    std::vector<double> Eval(const std::vector<Network*> &models, size_t limit=100, double randomness=0.0) const // {{{
     { RLGame *g=Copy();
       while (0<limit && !g->Done())
-      { g->Step(models);
+      { g->Step(models,randomness);
         --limit;
       }
       vector<double> res=g->Score();
@@ -75,7 +77,7 @@ class RLGame // {{{
     } // }}}
 
     //! Train networks to play game using Reinforcement Learning
-    void TrainRLGame(vector<Network*> &models, size_t sims, size_t reps, double ainv, double lambda, size_t limit=100, bool debug=false) const // {{{
+    void TrainRLGame(vector<Network*> &models, size_t sims, size_t reps, double ainv, double lambda, size_t limit=100, bool multiple_occurences=false, double randomness=0.0, bool debug=false) const // {{{
     { vector<vector<double> > inputs;
       vector<vector<vector<double> > > results;
 
@@ -94,7 +96,7 @@ class RLGame // {{{
       vector<thread> threads;
       // Start threads
       for (size_t core=0; core<cores; ++core)
-      { MakeRLDataArg *arg=new MakeRLDataArg(*this,models,sims*(core+1)/cores-sims*core/cores,limit,mtx,statehashes);
+      { MakeRLDataArg *arg=new MakeRLDataArg(*this,models,sims*(core+1)/cores-sims*core/cores,limit,randomness,mtx,statehashes,multiple_occurences);
         args.push_back(arg);
         threads.push_back(thread(MakeRLData,arg));
       }
@@ -123,13 +125,15 @@ class RLGame // {{{
 
 }; // }}}
 
-MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, std::mutex &m, vector<set<vector<double> > > &states) // {{{
+MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, double randomness, std::mutex &m, vector<set<vector<double> > > &states, bool multiple_occurences) // {{{
 : myGame(game)
 , myModels(models)
 , mySims(sims)
 , myLimit(limit)
+, myRandomness(randomness)
 , myMutex(m)
 , myStates(states)
+, myMultipleOccurences(multiple_occurences)
 { for (size_t player=0; player<myGame.Players(); ++player)
   {  myInputs.push_back(vector<double>());
      myResults.push_back(vector<vector<double> >());
@@ -155,18 +159,20 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
       size_t player=state->Turn();
       vector<double> choices=arg->myModels[player]->Eval(input);
 
-      arg->myMutex.lock();
-      bool old=arg->myStates[player].find(input)!=arg->myStates[player].end();
-      if (!old)
-        arg->myStates[player].insert(input);
-      arg->myMutex.unlock();
-      if (old) // Old state
-      { state->Step(arg->myModels);
-        continue;
+      if (!arg->myMultipleOccurences)
+      { arg->myMutex.lock();
+        bool old=arg->myStates[player].find(input)!=arg->myStates[player].end();
+        if (!old)
+          arg->myStates[player].insert(input);
+        arg->myMutex.unlock();
+        if (old) // Old state
+        { state->Step(arg->myModels,arg->myRandomness);
+          continue;
+        }
       }
 
       // Get chosen next state and its score with current model
-      vector<double> scores=state->Eval(arg->myModels,arg->myLimit+1);
+      vector<double> scores=state->Eval(arg->myModels,arg->myLimit+1, arg->myRandomness);
       vector<double> right_choices=choices;
       double best_score=RelativeScore(scores,player);
       double worst_score=best_score;
@@ -176,7 +182,7 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
       { 
         RLGame *astate=state->Copy();
         astate->Step(achoices[a]);
-        vector<double> ascores=astate->Eval(arg->myModels,arg->myLimit);
+        vector<double> ascores=astate->Eval(arg->myModels,arg->myLimit,arg->myRandomness);
         double ascore=RelativeScore(ascores,player);
         if (ascore>best_score)
         { 
