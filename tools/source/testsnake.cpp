@@ -3,48 +3,60 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
-#include <thread>
-#include "rlsnake.hpp"
+#include <sstream>
+#include "rlsnake_multiplayer.hpp"
+#include <ncurses.h>
+#include <unistd.h>
 
-bool TestSnake(const string &model_name, size_t width, size_t height) // {{{
+using namespace std;
+
+void TestSnake(vector<Network*> &models, size_t width, size_t height) // {{{
 { // Create game
   srand(time(NULL)); // Fix (random) map
-  RLSnake game(width,height);
+  RLSnake game(width,height,models.size());
   // Create player networks
-  vector<Network*> models;
-  models.push_back(new Network(101));
-  ifstream inet(model_name);
-  models[0]->LoadParameters(inet);
-  inet.close();
 
   size_t step=0;
-  for (step=0; !game.Done(); ++step)
-  { cout << "Step: " << step << " score: " << game.Score()[0] << endl
-         << game.GameString() << endl;
+  for (step=0; true; ++step)
+  { //clear();
+    move(0,0); // Goto top left corner
+    stringstream ss;
+    ss << "Step: " << step << " score: " << game.Score()[0] << "\n\r"
+       << game.GameString();
+    mvaddstr(1,1,ss.str().c_str());
+    wrefresh(stdscr);
     // Perform step
+    if (game.Done())
+      break;
     game.RLGame::Step(models,0.1);
-    this_thread::sleep_for(chrono::milliseconds(50));
+    this_thread::sleep_for(chrono::milliseconds(30));
   }
-  cout << "Step: " << step << " score: " << game.Score()[0] << endl
-       << game.GameString() << endl;
-  bool result=game.Score()[0]>=10.0;
 
   // Clean up
   while (!models.empty())
   { delete models.back();
     models.pop_back();
   }
-  return result;
+  return;
 } // }}}
 
 int main(int argc, char **argv) // {{{
 { try
   { if (argc<2)
-    { cout << "Usage: " << argv[0] << " <snake model filename>" << endl;
+    { cout << "Usage: " << argv[0] << " [-m <model path>]* [-p <keys>]*" << endl;
       return 0;
     }
     cout << "TestRL3 - Testing snake model " << argv[1] << endl;
-    return TestSnake(argv[1],19,19);
+    initscr();
+    start_color();
+    cbreak();
+    noecho();
+    keypad(stdscr,true);
+    nodelay(stdscr,true);
+    TestSnake(argv[1],80,19);
+    usleep(3000000);
+    endwin();
+    return 0;
   }
   catch (const string &s)
   { cout << "Error: " << s << endl;

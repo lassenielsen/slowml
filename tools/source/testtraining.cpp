@@ -1998,12 +1998,12 @@ bool TestRL3() // {{{
   // Create player networks
   vector<Network*> models;
   stringstream ss;
-  ss << 5+(2*fow+1)*(2*fow+1)-1 << "->[[10*[all]],[4*[all]]]";
+  ss << 5+(2*fow+1)*(2*fow+1)-1 << "->[[4*[all]]]";
   models.push_back(Network::Parse(ss.str()));
 
   // Train model
   for (size_t rep=0; rep<1000 /*&& score<10.0d*/; ++rep)
-  { game.TrainRLGame(models,200,1000,0.0,0.00001,500,true,0.1,true);
+  { game.TrainRLGame(models,500,500,0.0,0.00001,500,true,0.0,true);
     double score=0.0d;
     for (size_t i=0; i<1000; ++i)
     {

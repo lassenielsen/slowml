@@ -4,7 +4,7 @@ version = 2021
 compiler = g++
 opt = -O3
 args = -std=c++11
-libs = -lslowml -ldpl -lpthread
+libs = -lslowml -ldpl -lpthread -lncurses
 OS_AUTO = $(shell uname -s)
 COMMENT = _
 
