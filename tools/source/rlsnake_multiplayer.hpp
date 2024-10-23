@@ -3,19 +3,19 @@
 #include <vector>
 #include <sstream>
 
-#define fow 3
+#define fow 15
 
 class RLSnake : public RLGame // {{{
 { private:
     struct snake
-    { vector<pair<size_t,size_t> > myTail;
-      pair<size_t,size_t> myHead;
+    { vector<pair<int,int> > myTail;
+      pair<int,int> myHead;
       double myPoints;
       char myDir;
       bool myDead;
       size_t myBonus;
       size_t myLength;
-      size_t myFow;
+      int myFow;
     };
   public:
     RLSnake(size_t w, size_t h, size_t players) // {{{
@@ -35,7 +35,7 @@ class RLSnake : public RLGame // {{{
       { myPlayers[player].myTail.clear();
       }
       for (size_t player=0; player<myPlayers.size(); ++player)
-      { for (size_t t=0; t==0 || (t<100 && isDangerous(myPlayers[player].myHead.first,myPlayers[player].myHead.second)); ++t)
+      { for (size_t t=0; t==0 || (t<100 && Dangerous(myPlayers[player].myHead.first,myPlayers[player].myHead.second)); ++t)
         { myPlayers[player].myHead.first=2+rand()%(myWidth-4);
           myPlayers[player].myHead.second=2+rand()%(myHeight-4);
         }
@@ -46,7 +46,7 @@ class RLSnake : public RLGame // {{{
         myPlayers[player].myLength=30;
         myPlayers[player].myFow=fow;
       }
-      for (size_t i=0; i==0 || (i<100 && ((myHeadX==myFruitX && myHeadY==myFruitY) || Dangerous(myFruitX,myFruitY))); ++i)
+      for (size_t i=0; i==0 || (i<100 && Dangerous(myFruitX,myFruitY)); ++i)
       { myFruitX=1+rand()%(myWidth-2);
         myFruitY=1+rand()%(myHeight-2);
       }
@@ -63,8 +63,7 @@ class RLSnake : public RLGame // {{{
       result.push_back(myFruitY>myPlayers[myTurn].myHead.second?1.0d:0.0d); // Fruit down
       for (int x=myPlayers[myTurn].myHead.first-myPlayers[myTurn].myFow; x<=myPlayers[myTurn].myHead.first+myPlayers[myTurn].myFow; ++x)
         for (int y=myPlayers[myTurn].myHead.second-myPlayers[myTurn].myFow; y<=myPlayers[myTurn].myHead.second+myPlayers[myTurn].myFow; ++y)
-        for (int y=myHeadY-fow; y<=myHeadY+fow; ++y)
-          if (x!=myHeadX || y!=myHeadY)
+          if (x!=myPlayers[myTurn].myHead.first || y!=myPlayers[myTurn].myHead.second)
             result.push_back(Dangerous(x,y)?1.0d:0.0d); // Tile is dangerous
       //Done
       return result;
@@ -109,8 +108,6 @@ class RLSnake : public RLGame // {{{
     void Step(const std::vector<double> &inputs) // {{{
     { if (myAlive==0)
         return;
-      for (size_t i=0; i==0 || myPlayers[myTurn].myDead; ++i)
-        myTurn=(myTurn+1)%myPlayers.size();
 
       //cout << "Stepping from " << myX << "," << myY << "->";
       // Determine movce
@@ -154,20 +151,26 @@ class RLSnake : public RLGame // {{{
       else
       { std::stringstream ss;
         ss << GameString() << endl
-           << "RLSnake::Step: Bad direction: " << myDir;
+           << "RLSnake::Step: Bad direction: " << myPlayers[myTurn].myDir;
         throw ss.str();
       }
 
       if (Dangerous(myPlayers[myTurn].myHead.first,myPlayers[myTurn].myHead.second))
       { myPlayers[myTurn].myDead=true;
+        myAlive-=1;
+        // Next turn
+        if (myAlive>0)
+        { for (size_t i=0; i==0 || myPlayers[myTurn].myDead; ++i)
+            myTurn=(myTurn+1)%myPlayers.size();
+        }
         return;
       }
 
       if (myPlayers[myTurn].myHead.first==myFruitX && myPlayers[myTurn].myHead.second==myFruitY)
-      { myPoints+=1.0d;
-        myPoints+=((double)myBonus)/(myWidth*myHeight*10);
-        myBonus=myWidth*myHeight;
-        ++myLength;
+      { myPlayers[myTurn].myPoints+=1.0d;
+        myPlayers[myTurn].myPoints+=((double)myPlayers[myTurn].myBonus)/(myWidth*myHeight*10);
+        myPlayers[myTurn].myBonus=myWidth*myHeight;
+        ++myPlayers[myTurn].myLength;
         for (size_t i=0; i==0 || (i<100 && (Dangerous(myFruitX,myFruitY))); ++i)
         { myFruitX=1+rand()%(myWidth-2);
           myFruitY=1+rand()%(myHeight-2);
@@ -177,37 +180,52 @@ class RLSnake : public RLGame // {{{
       //myPoints+=((double)myLength)/100000.0d;
       //myPoints+=((double)(myWidth-abs((long)(myHeadX-myFruitX))))/1000000.0d;
       //myPoints+=((double)(myHeight-abs((long)(myHeadY-myFruitY))))/1000000.0d;
-      if (myBonus>0)
-        --myBonus;
+      if (myPlayers[myTurn].myBonus>0)
+        --myPlayers[myTurn].myBonus;
+      // Next turn
+      for (size_t i=0; i==0 || myPlayers[myTurn].myDead; ++i)
+        myTurn=(myTurn+1)%myPlayers.size();
     } // }}}
-    size_t Players() const { return myPlayers; }
+    size_t Players() const { return myPlayers.size(); }
     size_t Turn() const { return myTurn; }
-    bool Done() const { return myDead; }
+    bool Done() const { return myAlive==0; }
     bool Dangerous(int x, int y) const // {{{
     { if (x<0 || y<0 || x>=myWidth || y>=myHeight)
         return true;
-      for (size_t player=0; player<myPlayers.size(); ++player]
-        if (find(myPlayers[player].myTail.begin(),myPlayers[player].myTail.end(),pair<size_t,size_t>(x,y))!=myPlayers[player].myTail.end());
+      for (size_t player=0; player<myPlayers.size(); ++player)
+      { if (myPlayers[player].myDead)
+          continue;
+        const vector<pair<int,int>> &tail(myPlayers[player].myTail);
+        if (find(tail.begin(),tail.end(),pair<int,int>(x,y))!=tail.end())
           return true;
+      }
       return false;
           //|| (x>=10 && y>=3 && x<12 && y<myHeight-3)
           //|| (x>=myWidth-12 && y>=3 && x<myWidth-10 && y<myHeight-3)
     } // }}}
     bool Visible(int x, int y) const // {{{
     { for (size_t player=0; player<myPlayers.size(); ++player)
-        if (abs(x-myPlayers[myTurn].myHead.first)<=fow && abs(y-myPlayers[myTurn].myHeadY)<=myPlayers[myTurn].myFow)
+      { if (myPlayers[player].myDead)
+          continue;
+        if (abs((long)(x-myPlayers[player].myHead.first))<=fow && abs((long)(y-myPlayers[player].myHead.second))<=myPlayers[player].myFow)
           return true;
+      }
       return false;
     } // }}}
     vector<double> Score() const // {{{
     { vector<double> result;
       for (size_t player=0; player<myPlayers.size(); ++player)
-        result.push_back(myPlayers[player].myPoints-(myPlayers[myTurn].myDead?10.0:0.0));
+        result.push_back(myPlayers[player].myPoints-(myPlayers[player].myDead?10.0:0.0));
       return result;
     } // }}}
   
     std::string GameString() const // {{{
     { std::stringstream result;
+      result << "Live Players: " << myAlive << endl;
+      vector<double> scores=Score();
+      for (size_t player=0; player<myPlayers.size(); ++player)
+      { result << "Snake " << player << " score: " << scores[player] << endl; //" - " << myPlayers[player].myDead?string("dead"):string("alive") <<  endl;
+      }
       result << std::string(myWidth+2,'_') << endl;
       for (size_t y=0;y<myHeight; ++y)
       { result << "|";
@@ -233,6 +251,7 @@ class RLSnake : public RLGame // {{{
       return result.str();
     } // }}}
 
+    size_t LiveSnakes() const { return myAlive; }
   private:
     size_t myWidth;
     size_t myHeight;

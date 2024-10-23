@@ -8,29 +8,31 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <chrono>
-#include <thread>
 
 using namespace std;
 
-#include "rlsnake.hpp"
+#include "rlsnake_multiplayer.hpp"
 void TrainSnake(vector<Network*> models, size_t width, size_t height, size_t its, size_t reps, size_t sims, double alphainv, double lambda, double randomness) // {{{
 { // Create game
-  RLSnake game(width,height);
-  cout << "Input width: " << game.State().size() << endl;
+  RLSnake game(width,height,models.size());
+  //cout << "Input width: " << game.State().size() << endl;
   // Create player networks
 
   // Train model
   for (size_t it=0; it<its; ++it)
-  { game.TrainRLGame(models,sims,reps,alphainv,lambda,500,false,0.0,true);
-    double score=0.0d;
+  { game.TrainRLGame(models,sims,reps,alphainv,lambda,500,true,0.0,true);
+    vector<double> scores(models.size(),0.0d);
     for (size_t i=0; i<1000; ++i)
     {
       auto gc=game.Copy();
-      score+=gc->Eval(models,500,0.1)[0];
+      vector<double> s=gc->Eval(models,500,0.1);
       delete gc;
+      for (size_t i=0; i<s.size(); ++i)
+        scores[i]+=s[i];
     }
-    cout << "Iteration " << it << ": Average points after 500 steps: " << score/1000.0 << endl;
+    cout << "After iteraion " <<it << endl;
+    for (size_t i=0; i<scores.size(); ++i)
+      cout << "Player " << i << " scored " << scores[i]/1000.0d << " average points after 500 steps." << endl;
   }
   return;
 } // }}}
