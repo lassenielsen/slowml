@@ -48,7 +48,7 @@ size_t Network::AddNode(size_t layer, const vector<size_t> &inputs) // {{{
   return myNodes[layer].size()-1;
 } // }}}
 
-vector<double> Network::Eval(const Data<double> &instances, size_t pos) // {{{
+vector<double> Network::Eval(const Data<double> &instances, size_t pos) const // {{{
 { if (instances.Width()!=myInputSize)
     throw string("Network::Eval input width does not match");
   
@@ -88,7 +88,7 @@ vector<double> Network::Eval(const Data<double> &instances, size_t pos) // {{{
   //cout << endl;
   return state;
 } // }}}
-vector<double> Network::Eval(const vector<double> &instance) // {{{
+vector<double> Network::Eval(const vector<double> &instance) const // {{{
 { if (instance.size()!=myInputSize)
     throw string("Network::Eval input width does not match");
   

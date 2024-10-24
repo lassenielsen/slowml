@@ -11,14 +11,14 @@ class Network : public Model<std::vector<double> > // {{{
     Network(size_t input_size); // TODO DSL FOR NETWORK DESIGN
     virtual ~Network();
 
-    std::string Type() { return "Network Model"; }
+    std::string Type() const { return "Network Model"; }
 
     size_t AddNode(size_t layer, const std::vector<size_t> &inputs);
     Node &GetNode(size_t layer, size_t node) { return myNodes.at(layer).at(node); }
     const Node &GetNode(size_t layer, size_t node) const { return myNodes.at(layer).at(node); }
 
-    std::vector<double> Eval(const Data<double> &instances, size_t pos);
-    std::vector<double> Eval(const std::vector<double> &instance);
+    std::vector<double> Eval(const Data<double> &instances, size_t pos) const;
+    std::vector<double> Eval(const std::vector<double> &instance) const;
     double LogDistance(const std::vector<double> &guess, const std::vector<double> &truth);
     double Cost(const GuidedData<double,std::vector<double> > &instances, double lambda=1.0);
     std::vector<double> Delta(const GuidedData<double,std::vector<double> > &instances, double lambda=1.0);
