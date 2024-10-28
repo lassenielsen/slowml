@@ -77,10 +77,10 @@ void Input(vector<Player*> &players) // {{{
   }
 } // }}}
 
-void TestSnake(vector<Network*> &models, vector<Player*> &players, size_t width, size_t height) // {{{
+void TestSnake(vector<Network*> &models, vector<Player*> &players, vector<RLSnake::snake> &snakes, size_t width, size_t height, double randomness) // {{{
 { // Create game
   srand(time(NULL)); // Fix (random) map
-  RLSnake game(width,height,models.size()+players.size());
+  RLSnake game(width,height,snakes);
   // Create player networks
 
   size_t step=0;
@@ -95,7 +95,7 @@ void TestSnake(vector<Network*> &models, vector<Player*> &players, size_t width,
     if (game.Done())
       break;
     if (game.Turn()<models.size())
-      game.RLGame::Step(models,0.1);
+      game.RLGame::Step(models,randomness);
     else
       game.Step(players[game.Turn()-models.size()]->Keys());
 
@@ -115,12 +115,15 @@ void TestSnake(vector<Network*> &models, vector<Player*> &players, size_t width,
 int main(int argc, char **argv) // {{{
 { try
   { if (argc<2)
-    { cout << "Usage: " << argv[0] << " [-m <model path>]* [-p <keys>]*" << endl;
+    { cout << "Usage: " << argv[0] << " [-m <model path> <fov>]* [-p <keys>]* [-rnd|--randomness <double=0.01>]" << endl;
       return 0;
     }
 
     vector<Network*> models;
     vector<Player*> players;
+    vector<RLSnake::snake> snakes;
+    double opt_randomness=0.01d;
+
     players.push_back(new Player('w','s','a','d'));
     for (size_t i=1; i<argc; ++i)
     { if (i+1<argc && string("-m")==argv[i])
@@ -129,10 +132,23 @@ int main(int argc, char **argv) // {{{
         model->LoadParameters(fin);
         fin.close();
         models.push_back(model);
+        RLSnake::snake s;
+        stringstream ss;
+        ss << argv[++i];
+        ss >> s.myFov;
+        snakes.push_back(s);
       }
       else if (i+1<argc && string("-p")==argv[i])
       { ++i;
+        RLSnake::snake s;
+        s.myFov=0;
+        snakes.push_back(s);
         cerr << "Player snakes not yet supported" << endl;
+      }
+      else if (i+1<argc && (string("-rnd")==argv[i] || string("--randomness")==argv[i]))
+      { stringstream ss;
+        ss << argv[++i];
+        ss >> opt_randomness;
       }
       else
         cerr << "Unknown argument " << argv[i];
@@ -144,7 +160,7 @@ int main(int argc, char **argv) // {{{
     keypad(stdscr,true);
     nodelay(stdscr,true);
 
-    TestSnake(models,players,80,19);
+    TestSnake(models,players,snakes,80,19,opt_randomness);
     while (!models.empty())
     { delete models.back();
       models.pop_back();

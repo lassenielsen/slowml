@@ -12,9 +12,9 @@
 using namespace std;
 
 #include "rlsnake_multiplayer.hpp"
-void TrainSnake(vector<Network*> models, size_t width, size_t height, size_t its, size_t reps, size_t sims, double alphainv, double lambda, double randomness) // {{{
+void TrainSnake(vector<Network*> models, vector<RLSnake::snake> &snakes, size_t width, size_t height, size_t its, size_t reps, size_t sims, double alphainv, double lambda, double randomness) // {{{
 { // Create game
-  RLSnake game(width,height,models.size());
+  RLSnake game(width,height,snakes);
   //cout << "Input width: " << game.State().size() << endl;
   // Create player networks
 
@@ -39,11 +39,12 @@ void TrainSnake(vector<Network*> models, size_t width, size_t height, size_t its
 
 int main(int argc, char **argv) // {{{
 { if (argc<2)
-  { cerr << "Syntax: " << argv[0] << "[--continue|-c <model path>]* [--network|-n <network> <model path>]* [--iterations|-i <int] [--repetitions|-r <int>] [--simulations|-s <int>] [--gd_alphainv|-gda <double>] [--gd_lambda|-gdl <double>]" << endl;
+  { cerr << "Syntax: " << argv[0] << "[--continue|-c <model path> <fov>]* [--network|-n <network> <model path> <fov>]* [--iterations|-i <int=100>] [--simulations|-s <int=500>] [--randomness|-rnd <double=0.0>] [--repetitions|-gdr|-r <int=500>] [--gd_alphainv|-gda <double=0.0>] [--gd_lambda|-gdl <double=0.0001>]" << endl;
     return 0;
   }
   vector<Network*> models;
   vector<string> paths;
+  vector<RLSnake::snake> snakes;
   size_t opt_width=19;
   size_t opt_height=19;
   // opt_map
@@ -64,6 +65,11 @@ int main(int argc, char **argv) // {{{
       fin.close();
       models.push_back(model);
       paths.push_back(path);
+      RLSnake::snake s;
+      stringstream ss;
+      ss << argv[++i];
+      ss >> s.myFov;
+      snakes.push_back(s);
     }
     else if (i+2<argc && (arg=="-n" || arg=="--network"))
     { string network=string(argv[++i]);
@@ -71,21 +77,31 @@ int main(int argc, char **argv) // {{{
       Network *model=Network::Parse(network);
       models.push_back(model);
       paths.push_back(path);
+      RLSnake::snake s;
+      stringstream ss;
+      ss << argv[++i];
+      ss >> s.myFov;
+      snakes.push_back(s);
     }
     else if (i+1<argc && (arg=="-i" || arg=="--iterations"))
     { stringstream ss;
       ss << string(argv[++i]);
       ss >> opt_its;
     }
-    else if (i+1<argc && (arg=="-r" || arg=="--repetitions"))
-    { stringstream ss;
-      ss << string(argv[++i]);
-      ss >> opt_reps;
-    }
     else if (i+1<argc && (arg=="-s" || arg=="--simulations"))
     { stringstream ss;
       ss << string(argv[++i]);
       ss >> opt_sims;
+    }
+    else if (i+1<argc && (arg=="-rnd" || arg=="--randomness"))
+    { stringstream ss;
+      ss << string(argv[++i]);
+      ss >> opt_randomness;
+    }
+    else if (i+1<argc && (arg=="-r" || arg=="-gdr" || arg=="--repetitions"))
+    { stringstream ss;
+      ss << string(argv[++i]);
+      ss >> opt_reps;
     }
     else if (i+1<argc && (arg=="-gda" || arg=="--gd_alphainv"))
     { stringstream ss;
@@ -101,7 +117,7 @@ int main(int argc, char **argv) // {{{
       cerr << "Unknown option " << arg << endl;
   }
   try
-  { TrainSnake(models, opt_width, opt_height, opt_its, opt_reps, opt_sims, opt_alphainv, opt_lambda, opt_randomness);
+  { TrainSnake(models, snakes, opt_width, opt_height, opt_its, opt_reps, opt_sims, opt_alphainv, opt_lambda, opt_randomness);
     for (size_t i=0; i<models.size(); ++i)
     { cout << "Saving model " << paths[i] << endl;
       ofstream fout(paths[i]);

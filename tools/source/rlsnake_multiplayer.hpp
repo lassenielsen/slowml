@@ -3,10 +3,8 @@
 #include <vector>
 #include <sstream>
 
-#define fow 15
-
 class RLSnake : public RLGame // {{{
-{ private:
+{ public:
     struct snake
     { vector<pair<int,int> > myTail;
       pair<int,int> myHead;
@@ -15,15 +13,14 @@ class RLSnake : public RLGame // {{{
       bool myDead;
       size_t myBonus;
       size_t myLength;
-      int myFow;
+      int myFov;
     };
-  public:
-    RLSnake(size_t w, size_t h, size_t players) // {{{
+
+    RLSnake(size_t w, size_t h, const vector<snake> &players) // {{{
     : myWidth(w)
     , myHeight(h)
-    { for (size_t p=0; p<players; ++p)
-        myPlayers.push_back(snake());
-      Init();
+    , myPlayers(players)
+    { Init();
     } // }}}
     virtual ~RLSnake() // {{{
     {
@@ -44,7 +41,7 @@ class RLSnake : public RLGame // {{{
         myPlayers[player].myDead=false;
         myPlayers[player].myBonus=myWidth*myHeight;
         myPlayers[player].myLength=30;
-        myPlayers[player].myFow=fow;
+        //myPlayers[player].myFov=fov;
       }
       for (size_t i=0; i==0 || (i<100 && Dangerous(myFruitX,myFruitY)); ++i)
       { myFruitX=1+rand()%(myWidth-2);
@@ -61,10 +58,63 @@ class RLSnake : public RLGame // {{{
       result.push_back(myFruitX>myPlayers[myTurn].myHead.first?1.0d:0.0d); // Fruit right
       result.push_back(myFruitY<myPlayers[myTurn].myHead.second?1.0d:0.0d); // Fruit up
       result.push_back(myFruitY>myPlayers[myTurn].myHead.second?1.0d:0.0d); // Fruit down
-      for (int x=myPlayers[myTurn].myHead.first-myPlayers[myTurn].myFow; x<=myPlayers[myTurn].myHead.first+myPlayers[myTurn].myFow; ++x)
-        for (int y=myPlayers[myTurn].myHead.second-myPlayers[myTurn].myFow; y<=myPlayers[myTurn].myHead.second+myPlayers[myTurn].myFow; ++y)
-          if (x!=myPlayers[myTurn].myHead.first || y!=myPlayers[myTurn].myHead.second)
-            result.push_back(Dangerous(x,y)?1.0d:0.0d); // Tile is dangerous
+      if (myPlayers[myTurn].myFov>0)
+      { for (int x=myPlayers[myTurn].myHead.first-myPlayers[myTurn].myFov; x<=myPlayers[myTurn].myHead.first+myPlayers[myTurn].myFov; ++x)
+          for (int y=myPlayers[myTurn].myHead.second-myPlayers[myTurn].myFov; y<=myPlayers[myTurn].myHead.second+myPlayers[myTurn].myFov; ++y)
+            if (x!=myPlayers[myTurn].myHead.first || y!=myPlayers[myTurn].myHead.second)
+              result.push_back(Dangerous(x,y)?1.0d:0.0d); // Tile is dangerous
+      }
+      else
+      { for (int ang=0; ang<-myPlayers[myTurn].myFov; ++ang)
+        { float dx,dy;
+          switch (ang)
+          { case 0:
+              dx=0.0;
+              dy=-1.0;
+              break;
+            case 1:
+              dx=1.0;
+              dy=0.0;
+              break;
+            case 3:
+              dx=0.0;
+              dy=1.0;
+              break;
+            case 4:
+              dx=-1.0;
+              dy=0.0;
+              break;
+            case 5:
+              dx=1.0;
+              dy=-1.0;
+              break;
+            case 6:
+              dx=1.0;
+              dy=1.0;
+              break;
+            case 7:
+              dx=-1.0;
+              dy=1.0;
+              break;
+            case 8:
+              dx=-1.0;
+              dy=-1.0;
+              break;
+            default:
+              dx=0.5;
+              dy=-1.0;
+              break;
+          }
+          double feature=1.0;
+          for (size_t d=0; d<100; ++d)
+          { if (Dangerous(myPlayers[myTurn].myHead.first+(int)(dx*d),
+                          myPlayers[myTurn].myHead.second+(int)(dy*d)))
+              break;
+            feature=feature/2.0;
+          }
+          result.push_back(feature);
+        }
+      }
       //Done
       return result;
     } // }}}
@@ -207,7 +257,7 @@ class RLSnake : public RLGame // {{{
     { for (size_t player=0; player<myPlayers.size(); ++player)
       { if (myPlayers[player].myDead)
           continue;
-        if (abs((long)(x-myPlayers[player].myHead.first))<=fow && abs((long)(y-myPlayers[player].myHead.second))<=myPlayers[player].myFow)
+        if (abs((long)(x-myPlayers[player].myHead.first))<=myPlayers[player].myFov && abs((long)(y-myPlayers[player].myHead.second))<=myPlayers[player].myFov)
           return true;
       }
       return false;

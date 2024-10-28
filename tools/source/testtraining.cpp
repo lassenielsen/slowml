@@ -2002,16 +2002,18 @@ bool TestRL3() // {{{
   models.push_back(Network::Parse(ss.str()));
 
   // Train model
-  for (size_t rep=0; rep<1000 /*&& score<10.0d*/; ++rep)
+  double score=0.0d;
+  for (size_t rep=0; rep<10 && score<10.0d; ++rep)
   { game.TrainRLGame(models,500,500,0.0,0.00001,500,true,0.0,true);
-    double score=0.0d;
+    score=0.0d;
     for (size_t i=0; i<1000; ++i)
     {
       auto gc=game.Copy();
       score+=gc->Eval(models,500,0.1)[0];
       delete gc;
     }
-    cout << "Iteration " << rep << ": Average points after 500 steps: " << score/1000.0 << endl;
+    score=score/1000.0d;
+    cout << "Iteration " << rep << ": Average points after 500 steps: " << score << endl;
 
     // Save Model
     ofstream fout("snake.mod");
