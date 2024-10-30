@@ -39,7 +39,7 @@ void TrainSnake(vector<Network*> models, vector<RLSnake::snake> &snakes, size_t 
 
 int main(int argc, char **argv) // {{{
 { if (argc<2)
-  { cerr << "Syntax: " << argv[0] << "[--continue|-c <model path> <fov>]* [--network|-n <network> <model path> <fov>]* [--iterations|-i <int=100>] [--simulations|-s <int=500>] [--randomness|-rnd <double=0.0>] [--repetitions|-gdr|-r <int=500>] [--gd_alphainv|-gda <double=0.0>] [--gd_lambda|-gdl <double=0.0001>]" << endl;
+  { cerr << "Syntax: " << argv[0] << "[--continue|-c <model path> <fov>]* [--network|-n <network> <model path> <fov>]* [--iterations|-i <int=100>] [--simulations|-s <int=500>] [--randomness|-rnd <double=0.0>] [--repetitions|-gdr|-r <int=500>] [--gd_alphainv|-gda <double=0.0>] [--gd_lambda|-gdl <double=0.0001>] [-w|--width <int=20>] [-h|--height <int=20>]" << endl;
     return 0;
   }
   vector<Network*> models;
@@ -112,6 +112,16 @@ int main(int argc, char **argv) // {{{
     { stringstream ss;
       ss << string(argv[++i]);
       ss >> opt_lambda;
+    }
+    else if (i+1<argc && (arg=="-w" || arg=="--width"))
+    { stringstream ss;
+      ss << string(argv[++i]);
+      ss >> opt_width;
+    }
+    else if (i+1<argc && (arg=="-h" || arg=="--height"))
+    { stringstream ss;
+      ss << string(argv[++i]);
+      ss >> opt_height;
     }
     else
       cerr << "Unknown option " << arg << endl;

@@ -113,16 +113,30 @@ void TestSnake(vector<Network*> &models, vector<Player*> &players, vector<RLSnak
 } // }}}
 
 int main(int argc, char **argv) // {{{
-{ try
+{ initscr();
+  start_color();
+  cbreak();
+  noecho();
+  keypad(stdscr,true);
+  nodelay(stdscr,true);
+
+  double opt_randomness=0.01d;
+  size_t opt_width;
+  size_t opt_height;
+  getmaxyx(stdscr,opt_height,opt_width);
+  opt_width=opt_width-3;
+  opt_height=opt_height-10;
+
+  try
   { if (argc<2)
-    { cout << "Usage: " << argv[0] << " [-m <model path> <fov>]* [-p <keys>]* [-rnd|--randomness <double=0.01>]" << endl;
+    { endwin();
+      cout << "Usage: " << argv[0] << " [-m <model path> <fov>]* [-p <keys>]* [-rnd|--randomness <double=0.01>] [-w|--width <int="<<opt_width<<">] [-h|--height <int="<<opt_height<<">]" << endl;
       return 0;
     }
 
     vector<Network*> models;
     vector<Player*> players;
     vector<RLSnake::snake> snakes;
-    double opt_randomness=0.01d;
 
     players.push_back(new Player('w','s','a','d'));
     for (size_t i=1; i<argc; ++i)
@@ -150,17 +164,20 @@ int main(int argc, char **argv) // {{{
         ss << argv[++i];
         ss >> opt_randomness;
       }
+      else if (i+1<argc && (string("-w")==argv[i] || string("--width")==argv[i]))
+      { stringstream ss;
+        ss << argv[++i];
+        ss >> opt_width;
+      }
+      else if (i+1<argc && (string("-h")==argv[i] || string("--height")==argv[i]))
+      { stringstream ss;
+        ss << argv[++i];
+        ss >> opt_height;
+      }
       else
         cerr << "Unknown argument " << argv[i];
     }
-    initscr();
-    start_color();
-    cbreak();
-    noecho();
-    keypad(stdscr,true);
-    nodelay(stdscr,true);
-
-    TestSnake(models,players,snakes,80,19,opt_randomness);
+    TestSnake(models,players,snakes,opt_width,opt_height,opt_randomness);
     while (!models.empty())
     { delete models.back();
       models.pop_back();

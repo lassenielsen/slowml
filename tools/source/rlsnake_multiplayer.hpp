@@ -265,7 +265,7 @@ class RLSnake : public RLGame // {{{
     vector<double> Score() const // {{{
     { vector<double> result;
       for (size_t player=0; player<myPlayers.size(); ++player)
-        result.push_back(myPlayers[player].myPoints-(myPlayers[player].myDead?10.0:0.0));
+        result.push_back(myPlayers[player].myPoints);
       return result;
     } // }}}
   
