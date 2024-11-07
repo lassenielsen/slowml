@@ -76,27 +76,27 @@ class RLSnake : public RLGame // {{{
               dx=1.0;
               dy=0.0;
               break;
-            case 3:
+            case 2:
               dx=0.0;
               dy=1.0;
               break;
-            case 4:
+            case 3:
               dx=-1.0;
               dy=0.0;
               break;
-            case 5:
+            case 4:
               dx=1.0;
               dy=-1.0;
               break;
-            case 6:
+            case 5:
               dx=1.0;
               dy=1.0;
               break;
-            case 7:
+            case 6:
               dx=-1.0;
               dy=1.0;
               break;
-            case 8:
+            case 7:
               dx=-1.0;
               dy=-1.0;
               break;
@@ -257,8 +257,37 @@ class RLSnake : public RLGame // {{{
     { for (size_t player=0; player<myPlayers.size(); ++player)
       { if (myPlayers[player].myDead)
           continue;
-        if (abs((long)(x-myPlayers[player].myHead.first))<=myPlayers[player].myFov && abs((long)(y-myPlayers[player].myHead.second))<=myPlayers[player].myFov)
-          return true;
+        if (myPlayers[player].myFov>0)
+        { if (abs((long)(x-myPlayers[player].myHead.first))<=myPlayers[player].myFov && abs((long)(y-myPlayers[player].myHead.second))<=myPlayers[player].myFov)
+            return true;
+          else
+          { if (myPlayers[player].myHead.first-x==0 || myPlayers[player].myHead.second-y==0 ||
+                ((myPlayers[player].myHead.first-x)==(myPlayers[player].myHead.second-y)) ||
+                ((myPlayers[player].myHead.first-x)==(y-myPlayers[player].myHead.second)) )
+            { int x1=x;
+              int y1=y;
+              int dx1=0;
+              int dy1=0;
+              if (myPlayers[player].myHead.first<x1)
+                dx1=-1;
+              else if (myPlayers[player].myHead.first>x1)
+                dx1=1;
+              if (myPlayers[player].myHead.second<y1)
+                dy1=-1;
+              else if (myPlayers[player].myHead.second>y1)
+                dy1=1;
+              while (x1!=myPlayers[player].myHead.first || y1!=myPlayers[player].myHead.second)
+              { if (Dangerous(x1,y1))
+                  return false;
+                x1+=dx1;
+                y1+=dy1;
+              }
+              return true;
+            }
+            else
+              return false;
+          }
+        }
       }
       return false;
     } // }}}

@@ -64,3 +64,24 @@ def ClassVector(classstr,classes):
       res.append(0.0)
   return res
 
+def ClassUnVector(classvec,classes):
+  if len(classvec)<len(classes) or len(classes)<1:
+    raise "ClassUnVector: Requires vector of length at least 1"
+  res=classes[0]
+  minconf=classvec[0]
+  for i in range(1,len(classes)):
+    if classvec[i]>minconf:
+      res=classes[i]
+  return res
+
+def SplitVector(vec,length):
+  return [ vec[i:i+length] for i in range(0, len(vec), length) ]
+
+def GroupVector(vec):
+  res=[]
+  for x in range(len(vec)):
+    res.append([])
+    for y in range(len(vec[x])):
+      res[x].append([vec[x][y]])
+  return res
+
