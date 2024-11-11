@@ -54,10 +54,10 @@ class RLSnake : public RLGame // {{{
     { vector<double> result;
       result.push_back(1.0d);
       // Make State
-      result.push_back(myFruitX<myPlayers[myTurn].myHead.first?1.0d:0.0d); // Fruit left
-      result.push_back(myFruitX>myPlayers[myTurn].myHead.first?1.0d:0.0d); // Fruit right
-      result.push_back(myFruitY<myPlayers[myTurn].myHead.second?1.0d:0.0d); // Fruit up
-      result.push_back(myFruitY>myPlayers[myTurn].myHead.second?1.0d:0.0d); // Fruit down
+      result.push_back(myFruitX<myPlayers[myTurn].myHead.first?1.0d/(myPlayers[myTurn].myHead.first-myFruitX):0.0d); // Fruit left
+      result.push_back(myFruitX>myPlayers[myTurn].myHead.first?1.0d/(myFruitX-myPlayers[myTurn].myHead.first):0.0d); // Fruit right
+      result.push_back(myFruitY<myPlayers[myTurn].myHead.second?1.0d/(myPlayers[myTurn].myHead.second-myFruitY):0.0d); // Fruit up
+      result.push_back(myFruitY>myPlayers[myTurn].myHead.second?1.0d/(myFruitY-myPlayers[myTurn].myHead.second):0.0d); // Fruit down
       if (myPlayers[myTurn].myFov>0)
       { for (int x=myPlayers[myTurn].myHead.first-myPlayers[myTurn].myFov; x<=myPlayers[myTurn].myHead.first+myPlayers[myTurn].myFov; ++x)
           for (int y=myPlayers[myTurn].myHead.second-myPlayers[myTurn].myFov; y<=myPlayers[myTurn].myHead.second+myPlayers[myTurn].myFov; ++y)
@@ -277,13 +277,15 @@ class RLSnake : public RLGame // {{{
               dy1=-1;
             else if (myPlayers[player].myHead.second>y1)
               dy1=1;
-            while (x1!=myPlayers[player].myHead.first || y1!=myPlayers[player].myHead.second)
+            bool unbroken=true;
+            while (unbroken && x1!=myPlayers[player].myHead.first || y1!=myPlayers[player].myHead.second)
             { if (Dangerous(x1,y1))
-                continue;
+                unbroken=false;
               x1+=dx1;
               y1+=dy1;
             }
-            return true;
+            if (unbroken)
+             return true;
           }
           else
             continue;
