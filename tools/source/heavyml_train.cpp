@@ -4,6 +4,7 @@
 #include <slowml/network.hpp>
 #include <iostream>
 #include <sstream>
+#include <streambuf>
 #include <fstream>
 #include <dirent.h>
 #include <stdio.h>
@@ -69,11 +70,15 @@ vector<double> IdVec(size_t length, size_t pos) // {{{
 
   return result;
 } // }}}
-
+void readfile(const string &path, string &dst) // {{{
+{ std::ifstream t(path);
+  dst=string((std::istreambuf_iterator<char>(t)),
+             std::istreambuf_iterator<char>());
+} // }}}
 int main(int argc, char **argv)
 { try
   { if (argc==2 && string("--help")==argv[1] || argc==1)
-      throw string("Syntax is heavyml_train [--gd_repetitions|-gdr <int=50000>] [--gd_alphainv|-gda <double=100>] [--gd_lambda|-gdl <double=1>] [--model|-m <modelpath>] [--network|-n <network=\"#features->[3*[3*[all]],[#labels*[all]]]\">][--vectormap|-vm <map=\"X->X\">] [--filename_truths|-fnt <int=0>] [--output|-o <modelpath=./model.pars>] [--continue|-c] [--debug|-d] <datapath>");
+      throw string("Syntax is heavyml_train [--gd_repetitions|-gdr <int=50000>] [--gd_alphainv|-gda <double=100>] [--gd_lambda|-gdl <double=1>] [--model|-m <modelpath>] [--network|-n <network=\"#features->[3*[3*[all]],[#labels*[all]]]\">] [--networkfile|-nf <path>] [--vectormap|-vm <map=\"X->X\">] [--filename_truths|-fnt <int=0>] [--output|-o <modelpath=./model.pars>] [--continue|-c] [--debug|-d] <datapath>");
 
     string datapath="./data";
     string modelfile="./model.pars";
@@ -96,8 +101,8 @@ int main(int argc, char **argv)
         stringstream ss;
         ss << argv[arg];
         ss >> gd_repetitions;
-        if (gd_repetitions==0)
-          throw string("--gd_repetitions must be succeeded by positive integer");
+        if (gd_repetitions==0 && string(argv[arg])!="0")
+          throw string("--gd_repetitions must be succeeded by an integer");
       }
       else if (string("--gd_alphainv")==argv[arg] || string("-gda")==argv[arg])
       { ++arg;
@@ -138,6 +143,12 @@ int main(int argc, char **argv)
         model->LoadParameters(fin);
         fin.close();
         cout << "Loaded model" << endl;
+      }
+      else if (string("--networkfile")==argv[arg] || string("-nf")==argv[arg])
+      { ++arg;
+        if (arg+1>=argc)
+          throw string("--networkfile must be succeeded by a path");
+        readfile(argv[arg],network);
       }
       else if (string("--network")==argv[arg] || string("-n")==argv[arg])
       { ++arg;

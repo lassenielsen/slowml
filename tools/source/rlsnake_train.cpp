@@ -30,7 +30,7 @@ void TrainSnake(vector<Network*> models, vector<RLSnake::snake> &snakes, size_t 
       for (size_t i=0; i<s.size(); ++i)
         scores[i]+=s[i];
     }
-    cout << "After iteraion " <<it << endl;
+    cout << "After iteration " << it << endl;
     for (size_t i=0; i<scores.size(); ++i)
       cout << "Player " << i << " scored " << scores[i]/1000.0d << " average points after 500 steps." << endl;
   }

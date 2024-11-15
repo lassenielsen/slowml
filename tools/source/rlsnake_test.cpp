@@ -1,6 +1,7 @@
 #include <slowml/network.hpp>
 //#include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <chrono>
 #include <sstream>
@@ -82,11 +83,23 @@ void TestSnake(vector<Network*> &models, vector<Player*> &players, vector<RLSnak
   srand(time(NULL)); // Fix (random) map
   RLSnake game(width,height,snakes);
   // Create player networks
+  vector<vector<double> > states;
+  for (size_t i=0; i<players.size(); ++i)
+    states.push_back(game.State());
 
   size_t step=0;
   for (step=0; true; ++step)
   { //clear();
+    states[game.Turn()]=game.State();
     stringstream ss;
+    for (size_t i=0; i<players.size(); ++i)
+    { ss << "Player " << i << ": ";
+      for (size_t j=0; j<states[i].size(); ++j)
+      { ss.precision(2);
+        ss << states[i][j] << ", ";
+      }
+      ss << endl;
+    }
     ss << "Step: " << step << "\n\r"
        << game.GameString();
     mvaddstr(0,0,ss.str().c_str());

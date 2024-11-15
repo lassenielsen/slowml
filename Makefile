@@ -13,9 +13,9 @@
 name = slowml
 version = 2021
 libname = lib$(name).so
-#OS_LINUXlibname = lib$(name).so
+libname = lib$(name).so
 #OS_MAClibname = lib$(name).dylib
-#OS_LINUXlibversion = .$(version)
+libversion = .$(version)
 #OS_MAClibversion =
 COMMENT = OS_
 OS_AUTO = $(shell uname -s)
@@ -25,7 +25,7 @@ compiler = g++
 ctags = ctags
 args = -std=c++11 -fPIC `sdl-config --cflags` $(opt) -I./include/
 #OS_MAClibs = 
-#OS_LINUXlibs = -ldpl -lpthread
+libs = -ldpl -lpthread
 
 library_objects = \
   objects/linearregressionmodel.o \
@@ -78,19 +78,19 @@ include/$(name)/config.hpp:
 	@echo "#define CONFIG_HAPI" >> include/$(name)/config.hpp
 	@echo "#include <string>" >> include/$(name)/config.hpp
 #OS_MAC	@echo "#define OS_X" >> include/$(name)/config.hpp
-#OS_LINUX	@echo "#define OS_LINUX" >> include/$(name)/config.hpp
+	@echo "#define OS_LINUX" >> include/$(name)/config.hpp
 	@echo "#endif" >> include/$(name)/config.hpp
 
 install: $(libname)$(libversion) include/$(name)/vectormap_bnf.hpp include/$(name)/network_bnf.hpp
 	@echo "Copying library"
 	cp $(libname)$(libversion) /usr/lib/
-#OS_LINUX	ln -f -s /usr/lib/$(libname)$(libversion) /usr/lib/$(libname)
+	ln -f -s /usr/lib/$(libname)$(libversion) /usr/lib/$(libname)
 	@echo "Copying include-files"
 	mkdir -p /usr/include/$(name)
 	cp include/$(name)/*.hpp /usr/include/$(name)/
 	chmod -R a+rx /usr/include/$(name)
-#OS_LINUX	@echo "Reindexing libraries"
-#OS_LINUX	ldconfig -n /usr/lib
+	@echo "Reindexing libraries"
+	ldconfig -n /usr/lib
 
 uninstall:
 	@echo "Removing library"
@@ -99,8 +99,8 @@ uninstall:
 	rm -Rf /usr/include/$(name)
 	@echo "Removing opt files"
 	rm -Rf /opt/$(name)
-#OS_LINUX	@echo "Reindexing libraries"
-#OS_LINUX	ldconfig -n /usr/lib
+	@echo "Reindexing libraries"
+	ldconfig -n /usr/lib
 
 clean:
 	touch clean~
@@ -119,7 +119,7 @@ clean:
 	cp Makefile.in Makefile
 
 $(libname)$(libversion): $(library_objects)
-#OS_LINUX	$(compiler) -shared -Wl,-soname,$(libname).1 -o $(libname)$(libversion) $(library_objects) $(libs)
+	$(compiler) -shared -Wl,-soname,$(libname).1 -o $(libname)$(libversion) $(library_objects) $(libs)
 #OS_MAC	$(compiler) -dynamiclib -o $(libname) $(library_objects) $(libs)
 
 include/$(name)/%_bnf.hpp: bnf/%.bnf
