@@ -84,7 +84,7 @@ void TestSnake(vector<Network*> &models, vector<Player*> &players, vector<RLSnak
   RLSnake game(width,height,snakes);
   // Create player networks
   vector<vector<double> > states;
-  for (size_t i=0; i<players.size(); ++i)
+  for (size_t i=0; i<snakes.size(); ++i)
     states.push_back(game.State());
 
   size_t step=0;

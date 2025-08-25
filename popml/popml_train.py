@@ -33,8 +33,8 @@ while len(args)>0:
     for layer in layers:
       if layer[0:6]=='Dense(':
         nodes=int(layer[6:-1])
-        #network.append(tf.keras.layers.Dense(nodes,activation='sigmoid',use_bias=False))
-        network.append(tf.keras.layers.Dense(nodes,activation='relu',use_bias=False))
+        network.append(tf.keras.layers.Dense(nodes,activation='sigmoid',use_bias=False))
+        #network.append(tf.keras.layers.Dense(nodes,activation='relu',use_bias=False))
       else:
         print('Need support for layer: '+str(layer))
     model = tf.keras.models.Sequential(network)

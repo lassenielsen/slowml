@@ -2,7 +2,8 @@
 #include <algorithm>
 #include <vector>
 #include <sstream>
-
+#include <cmath>
+double sqr(double a) { return a*a; }
 class RLSnake : public RLGame // {{{
 { public:
     struct snake
@@ -296,7 +297,9 @@ class RLSnake : public RLGame // {{{
     vector<double> Score() const // {{{
     { vector<double> result;
       for (size_t player=0; player<myPlayers.size(); ++player)
-        result.push_back(myPlayers[player].myPoints);
+        result.push_back(myPlayers[player].myPoints
+                        +(0.1/sqrt(sqr(myPlayers[myTurn].myHead.first-myFruitX)+sqr(myPlayers[myTurn].myHead.second-myFruitY)+1))/(myWidth+myHeight));
+        // Added element to score to prefer proximity to fruit
       return result;
     } // }}}
   

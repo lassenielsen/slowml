@@ -28,7 +28,9 @@ void TrainSnake(vector<Network*> models, vector<RLSnake::snake> &snakes, size_t 
       vector<double> s=gc->Eval(models,500,0.1);
       delete gc;
       for (size_t i=0; i<s.size(); ++i)
+      { //cout << ">"<<s[i]<< endl;
         scores[i]+=s[i];
+      }
     }
     cout << "After iteration " << it << endl;
     for (size_t i=0; i<scores.size(); ++i)
