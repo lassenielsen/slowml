@@ -47,3 +47,5 @@ do for m1 in 'easy' 'medium' 'hard';
       done;
   done;
 done
+mkdir -p models
+mv *.mod models/
