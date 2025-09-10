@@ -50,7 +50,7 @@ int main(int argc, char **argv)
       ++id;
       stringstream fname;
       fname<<dest_path;
-      fname<<"data_"<<id;
+      fname<<"/data_"<<id;
       ofstream ifout(fname.str()+".ivec");
       ofstream ofout(fname.str()+".ovec");
       string text=line.substr(pos+2);
