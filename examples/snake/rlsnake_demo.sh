@@ -12,4 +12,6 @@
                -m models/rlsnake_4_hard.mod     4 \
                -m models/rlsnake_n8_easy.mod   -8 \
                -m models/rlsnake_n8_medium.mod -8 \
-               -m models/rlsnake_n8_hard.mod   -8
+               -m models/rlsnake_n8_hard.mod   -8 \
+               -w 80 -h 25
+

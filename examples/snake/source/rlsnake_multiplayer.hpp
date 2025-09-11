@@ -298,7 +298,7 @@ class RLSnake : public RLGame // {{{
     { vector<double> result;
       for (size_t player=0; player<myPlayers.size(); ++player)
         result.push_back(myPlayers[player].myPoints
-                        +(0.1/sqrt(sqr(myPlayers[myTurn].myHead.first-myFruitX)+sqr(myPlayers[myTurn].myHead.second-myFruitY)+1))/(myWidth+myHeight));
+                        +(0.1/sqrt(sqr(myPlayers[player].myHead.first-myFruitX)+sqr(myPlayers[player].myHead.second-myFruitY)+1))/(myWidth+myHeight));
         // Added element to score to prefer proximity to fruit
       return result;
     } // }}}
