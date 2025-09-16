@@ -308,7 +308,7 @@ class RLSnake : public RLGame // {{{
       result << "Live Players: " << myAlive << endl;
       vector<double> scores=Score();
       for (size_t player=0; player<myPlayers.size(); ++player)
-      { result << "Snake " << player << " score: " << scores[player] << endl; //" - " << myPlayers[player].myDead?string("dead"):string("alive") <<  endl;
+      { result << "Snake " << player << (myPlayers[player].myDead?string(" dead"):string(" live")) << " score: " << std::fixed << std::setprecision(5) << scores[player] << endl; //" - "  <<  endl;
       }
       result << std::string(myWidth+2,'_') << endl;
       for (size_t y=0;y<myHeight; ++y)

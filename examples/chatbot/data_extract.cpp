@@ -54,9 +54,10 @@ int main(int argc, char **argv)
       ofstream ifout(fname.str()+".ivec");
       ofstream ofout(fname.str()+".ovec");
       string text=line.substr(pos+2);
-      size_t dim=(text.size()+1)*257;
-      ifout.write((const char*)&dim,sizeof(size_t));
-      ofout.write((const char*)&dim,sizeof(size_t));
+      size_t idim=(text.size()+1)*257;
+      size_t odim=(text.size()+1)*256;
+      ifout.write((const char*)&idim,sizeof(size_t));
+      ofout.write((const char*)&odim,sizeof(size_t));
       const double d1=1.0;
       // Add zero to inputs
       ifout.write((const char*)&d1,sizeof(double));
@@ -64,10 +65,10 @@ int main(int argc, char **argv)
       for (size_t p=0; p<text.size(); ++p)
       { ifout.write((const char*)&d1,sizeof(double));
         WriteCharVector(ifout,text[p]);
-        ofout.write((const char*)&d1,sizeof(double));
+        //ofout.write((const char*)&d1,sizeof(double));
         WriteCharVector(ofout,text[p]);
       }
-      ofout.write((const char*)&d1,sizeof(double));
+      //ofout.write((const char*)&d1,sizeof(double));
       WriteCharVector(ofout,0);
       ifout.close();
       ofout.close();
