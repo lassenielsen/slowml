@@ -1,6 +1,4 @@
 #pragma once
-#include <slowml/data.hpp>
-#include <slowml/guideddata.hpp>
 #include <vector>
 #include <iostream>
 #include <sstream>
@@ -21,15 +19,15 @@ template<class Result> class Model // {{{
     virtual double GetParameter(size_t i) const=0;
     virtual void SetParameter(size_t i, double val)=0;
 
-    virtual Result Eval(const Data<double> &instances, size_t pos) const=0;
+    virtual Result Eval(const std::vector<std::vector<double>> &instances, size_t pos) const=0;
     virtual Result Eval(const std::vector<double> &instance) const=0;
-    virtual double Cost(const GuidedData<double,Result> &instances, double lambda=1.0)=0;
-    virtual std::vector<double> Delta(const GuidedData<double,Result> &instances, double lambda=1.0)=0;
+    virtual double Cost(const std::vector<std::vector<double>> &instances, const std::vector<Result> &truths, double lambda=1.0)=0;
+    virtual std::vector<double> Delta(const std::vector<std::vector<double>> &instances, const std::vector<Result> &truths, double lambda=1.0)=0;
 
     virtual void SaveParameters(std::ostream &dest, bool saveSize=true) const=0;
     virtual void LoadParameters(std::istream &src, bool loadSize=true)=0;
 
-    void FitParameters(GuidedData<double,Result> &instances, double &alpha_inv, double lambda=1.0, size_t repetitions=100, double max_alphainv=5.0, bool debug=false);
+    void FitParameters(const std::vector<std::vector<double>> &instances, const std::vector<Result> &truths, double &alpha_inv, double lambda=1.0, size_t repetitions=100, double max_alphainv=5.0, bool debug=false);
 }; // }}}
 
 template<class Result> Model<Result>::Model() // {{{
@@ -40,7 +38,7 @@ template<class Result> Model<Result>::~Model() // {{{
 {
 } // }}}
 
-template<class Result> void Model<Result>::FitParameters(GuidedData<double,Result> &instances, double &alpha_inv, double lambda, size_t repetitions, double max_alphainv, bool debug) // {{{
+template<class Result> void Model<Result>::FitParameters(const std::vector<std::vector<double>> &instances, const std::vector<Result> &truths, double &alpha_inv, double lambda, size_t repetitions, double max_alphainv, bool debug) // {{{
 { bool alpha_dynamic=false;
   double cost=0;
   if (max_alphainv<=0)
@@ -48,16 +46,16 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
   if (alpha_inv==0.0)
   { alpha_dynamic=true;
     alpha_inv=max_alphainv/16.00;
-    cost=Cost(instances,lambda);
+    cost=Cost(instances,truths,lambda);
   }
   for (size_t r=0; r<repetitions; ++r)
   { // Calculate Delta
-    std::vector<double> delta=Delta(instances,lambda);
+    std::vector<double> delta=Delta(instances,truths,lambda);
     // Simultaneous update of parameters
     for (size_t p=0; p<CountParameters(); ++p)
       SetParameter(p,GetParameter(p)-delta[p]/alpha_inv);
     if (alpha_dynamic)
-    { double tmp_cost=Cost(instances,lambda);
+    { double tmp_cost=Cost(instances,truths,lambda);
       double new_cost=cost;
       // Try increasing alpha
       while (r%5==0 && tmp_cost<new_cost && alpha_inv>=0.0001)
@@ -70,7 +68,7 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
         for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)-delta[p]/alpha_inv);
         new_cost=tmp_cost;
-        tmp_cost=Cost(instances,lambda);
+        tmp_cost=Cost(instances,truths,lambda);
         if ((tmp_cost>=new_cost || !(tmp_cost==tmp_cost)) && alpha_inv<=max_alphainv)
         { // Reverse last step
           for (size_t p=0; p<CountParameters(); ++p)
@@ -92,14 +90,14 @@ template<class Result> void Model<Result>::FitParameters(GuidedData<double,Resul
           cout << "+" << flush;
         for (size_t p=0; p<CountParameters(); ++p)
           SetParameter(p,GetParameter(p)-delta[p]/alpha_inv);
-        new_cost=Cost(instances,lambda);
+        new_cost=Cost(instances,truths,lambda);
       }
       if (debug)
         cout << "." << endl;
       cost=new_cost;
     }
     else if (debug)
-      cost=Cost(instances,lambda);
+      cost=Cost(instances,truths,lambda);
   
     if (debug)
     { std::cout << "Model::FitParameters: After step " << r << std::endl

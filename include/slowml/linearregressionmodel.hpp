@@ -7,11 +7,11 @@ class LinearRegressionModel : public ShallowModel<double> // {{{
     virtual ~LinearRegressionModel();
 
     std::string Type() const { return "Linear Regression Model"; }
-    double Eval(const Data<double> &instances, size_t pos) const;
+    double Eval(const vector<vector<double> > &instances, size_t pos) const;
     double Eval(const std::vector<double> &instance) const;
     double SquareDistance(const double &lhs, const double &rhs);
-    double Cost(const GuidedData<double,double> &instances, double lambda=1.0);
-    void AddDelta(const Data<double> &inputs, size_t pos, std::vector<double> &deltasum, const double &diff);
-    std::vector<double> Delta(const GuidedData<double,double> &instances,double lambda=1.0);
+    double Cost(const vector<vector<double> > &instances, const vector<double> &truths, double lambda=1.0);
+    void AddDelta(const vector<vector<double> > &inputs, size_t pos, std::vector<double> &deltasum, const double &diff);
+    std::vector<double> Delta(const vector<vector<double> > &instances, const vector<double> &truths,double lambda=1.0);
 }; // }}}
 

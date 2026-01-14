@@ -43,8 +43,8 @@ class RecurrentNetwork : public Model<std::vector<double> > // {{{
     static std::string ReadString(istream &src, size_t size);
     void LoadParameters(std::istream &src, bool loadSize=true);
 
-    static RecurrentNetwork *Parse(const std::string &network);
-    static RecurrentNetwork *ParseNetwork(const dpl::parsetree &tree);
+    static RecurrentNetwork *Parse(const std::string &network, size_t memory_size);
+    static RecurrentNetwork *ParseRecurrentNetwork(const dpl::parsetree &tree, size_t memory_size);
     static void ParseLayers(RecurrentNetwork &dest, const dpl::parsetree &tree);
     static void ParseNodes(RecurrentNetwork &dest, size_t idx, const dpl::parsetree &tree);
     static void ParseNode(RecurrentNetwork &dest, size_t idx, const dpl::parsetree &tree);

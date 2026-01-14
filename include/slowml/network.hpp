@@ -1,6 +1,5 @@
 #pragma once
 #include <slowml/shallowmodel.hpp>
-#include <slowml/wrapperdata.hpp>
 #include <dpl/parsetree.hpp>
 #include <tuple>
 
@@ -17,11 +16,11 @@ class Network : public Model<std::vector<double> > // {{{
     Node &GetNode(size_t layer, size_t node) { return myNodes.at(layer).at(node); }
     const Node &GetNode(size_t layer, size_t node) const { return myNodes.at(layer).at(node); }
 
-    std::vector<double> Eval(const Data<double> &instances, size_t pos) const;
+    std::vector<double> Eval(const vector<vector<double> > &instances, size_t pos) const;
     std::vector<double> Eval(const std::vector<double> &instance) const;
     double LogDistance(const std::vector<double> &guess, const std::vector<double> &truth);
-    double Cost(const GuidedData<double,std::vector<double> > &instances, double lambda=1.0);
-    std::vector<double> Delta(const GuidedData<double,std::vector<double> > &instances, double lambda=1.0);
+    double Cost(const vector<vector<double> > &instances, const vector<vector<double> > &truths, double lambda=1.0);
+    std::vector<double> Delta(const vector<vector<double> > &instances, const vector<vector<double> > &truths, double lambda=1.0);
 
     size_t InputSize() const { return myInputSize; }
     size_t LayerSize(size_t layer) const { return myNodes.at(layer).size(); }

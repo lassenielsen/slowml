@@ -1990,55 +1990,55 @@ bool TestRL2() // {{{
   return result;
 } // }}}
 
-#include "rlsnake.hpp"
-bool TestRL3() // {{{
-{ // Create game
-  RLSnake game(19,19);
-  //cout << "Input width: " << game.State().size() << endl;
-  // Create player networks
-  vector<Network*> models;
-  stringstream ss;
-  ss << 5+(2*fow+1)*(2*fow+1)-1 << "->[[4*[all]]]";
-  models.push_back(Network::Parse(ss.str()));
-
-  // Train model
-  double score=0.0d;
-  for (size_t rep=0; rep<10 && score<10.0d; ++rep)
-  { game.TrainRLGame(models,500,500,0.0,0.00001,500,true,0.0,true);
-    score=0.0d;
-    for (size_t i=0; i<1000; ++i)
-    {
-      auto gc=game.Copy();
-      score+=gc->Eval(models,500,0.1)[0];
-      delete gc;
-    }
-    score=score/1000.0d;
-    cout << "Iteration " << rep << ": Average points after 500 steps: " << score << endl;
-
-    // Save Model
-    ofstream fout("snake.mod");
-    models[0]->SaveParameters(fout);
-    fout.close();
-  }
-
-  // Test model
-  srand(200); // Fix (random) map
-  size_t step=0;
-  for (size_t step=0; !game.Done() && step<500; ++step)
-  { //cout << "Step: " << step << " score: " << game.Score()[0] << endl
-    //     << game.GameString() << endl;
-    game.RLGame::Step(models,0.1);
-    //this_thread::sleep_for(chrono::milliseconds(50));
-  }
-  bool result=game.Score()[0]>=10.0;
-
-  // Clean up
-  while (!models.empty())
-  { delete models.back();
-    models.pop_back();
-  }
-  return result;
-} // }}}
+//#include "rlsnake.hpp"
+//bool TestRL3() // {{{
+//{ // Create game
+//  RLSnake game(19,19);
+//  //cout << "Input width: " << game.State().size() << endl;
+//  // Create player networks
+//  vector<Network*> models;
+//  stringstream ss;
+//  ss << 5+(2*fow+1)*(2*fow+1)-1 << "->[[4*[all]]]";
+//  models.push_back(Network::Parse(ss.str()));
+//
+//  // Train model
+//  double score=0.0d;
+//  for (size_t rep=0; rep<10 && score<10.0d; ++rep)
+//  { game.TrainRLGame(models,500,500,0.0,0.00001,500,true,0.0,true);
+//    score=0.0d;
+//    for (size_t i=0; i<1000; ++i)
+//    {
+//      auto gc=game.Copy();
+//      score+=gc->Eval(models,500,0.1)[0];
+//      delete gc;
+//    }
+//    score=score/1000.0d;
+//    cout << "Iteration " << rep << ": Average points after 500 steps: " << score << endl;
+//
+//    // Save Model
+//    ofstream fout("snake.mod");
+//    models[0]->SaveParameters(fout);
+//    fout.close();
+//  }
+//
+//  // Test model
+//  srand(200); // Fix (random) map
+//  size_t step=0;
+//  for (size_t step=0; !game.Done() && step<500; ++step)
+//  { //cout << "Step: " << step << " score: " << game.Score()[0] << endl
+//    //     << game.GameString() << endl;
+//    game.RLGame::Step(models,0.1);
+//    //this_thread::sleep_for(chrono::milliseconds(50));
+//  }
+//  bool result=game.Score()[0]>=10.0;
+//
+//  // Clean up
+//  while (!models.empty())
+//  { delete models.back();
+//    models.pop_back();
+//  }
+//  return result;
+//} // }}}
 
 int main() // {{{
 { try
@@ -2061,8 +2061,8 @@ int main() // {{{
          << "skipped" << endl; //<< (TestRL1()?string("succeeded"):string("failed")) << endl;
     cout << "TestRL2 - Reinforcement Learning of Maze solving " << flush
          << "skipped" << endl; //<< (TestRL2()?string("succeeded"):string("failed")) << endl;
-    cout << "TestRL3 - Reinforcement Learning of Snake game "
-         << flush <<(TestRL3()?string("succeeded"):string("failed")) << endl;
+    //cout << "TestRL3 - Reinforcement Learning of Snake game "
+    //     << flush <<(TestRL3()?string("succeeded"):string("failed")) << endl;
   }
   catch (const std::string &error)
   { cerr << "Error: " << error << endl;

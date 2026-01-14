@@ -7,10 +7,10 @@ class LogisticRegressionModel : public ShallowModel<double> // {{{
     virtual ~LogisticRegressionModel();
 
     std::string Type() const { return "Logistic Regression Model"; }
-    double Eval(const Data<double> &instances, size_t pos) const;
+    double Eval(const std::vector<std::vector<double>> &instances, size_t pos) const;
     double Eval(const std::vector<double> &instance) const;
     double LogDistance(double guess, double truth);
-    double Cost(const GuidedData<double,double> &instances, double lambda=1.0);
-    void AddDelta(const Data<double> &inputs, size_t pos, std::vector<double> &deltasum, const double &diff);
-    std::vector<double> Delta(const GuidedData<double,double> &instances, double lambda=1.0);
+    double Cost(const std::vector<std::vector<double>> &instances, const std::vector<double> &truths, double lambda=1.0);
+    void AddDelta(const vector<vector<double> > &inputs, size_t pos, std::vector<double> &deltasum, const double &diff);
+    std::vector<double> Delta(const std::vector<std::vector<double>> &instances, const std::vector<double> &truths, double lambda=1.0);
 }; // }}}

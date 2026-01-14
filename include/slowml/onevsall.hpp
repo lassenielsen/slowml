@@ -18,9 +18,9 @@ class OneVsAll // {{{
     void AddParameter(double parameter=0.0);
     const std::vector<Label> &GetLabels() const { return myLabels; }
     const std::vector<LogisticRegressionModel> &GetModels() const { return myModels; }
-    const Label &Eval(const Data<double> &instances, size_t pos) const;
-    double Cost(const GuidedData<double,size_t> &instances, double lambda=1.0);
-    void FitParameters(GuidedData<double,size_t> &instances, double &alpha_inv, double lambda=1.0, size_t repetitions=1000, double max_alphainv=5.0, bool debug=false);
+    const Label &Eval(const vector<vector<double> > &instances, size_t pos) const;
+    double Cost(const vector<vector<double> > &instances, const vector<size_t> &truths, double lambda=1.0);
+    void FitParameters(const vector<vector<double> > &instances, const vector<size_t> &truths, double &alpha_inv, double lambda=1.0, size_t repetitions=1000, double max_alphainv=5.0, bool debug=false);
     void Save(std::ostream &dest, bool saveSize=true);
     void Load(std::istream &dest, bool loadSize=true);
 

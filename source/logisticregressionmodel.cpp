@@ -16,15 +16,20 @@ LogisticRegressionModel::~LogisticRegressionModel() // {{{
 {
 } // }}}
 
-double LogisticRegressionModel::Eval(const Data<double> &instances, size_t pos) const // {{{
-{ if (instances.Width()!=CountParameters())
+double LogisticRegressionModel::Eval(const vector<vector<double>> &instances, size_t pos) const // {{{
+{ if (instances.size()<=pos)
   { stringstream ss;
-    ss << "LogisticRegressionModel::Eval instance width(" << instances.Width() << ") does not match number of parameters(" << CountParameters() <<")" ;
+    ss << "LogisticRegressionModel::Eval position " << pos << "out of bounds" ;
+    throw ss.str();
+  }
+  if (instances[pos].size()!=CountParameters())
+  { stringstream ss;
+    ss << "LogisticRegressionModel::Eval instance width(" << instances[pos].size() << ") does not match number of parameters(" << CountParameters() <<")" ;
     throw ss.str();
   }
   double result=0;
-  for (size_t i=0; i<Parameters().size(); ++i)
-    result += GetParameter(i)*instances.GetValue(pos,i);
+  for (size_t i=0; i<CountParameters(); ++i)
+    result += GetParameter(i)*instances[pos][i];
   return sigmoid(result);
 } // }}}
 double LogisticRegressionModel::Eval(const vector<double> &instance) const // {{{
@@ -41,37 +46,36 @@ double LogisticRegressionModel::Eval(const vector<double> &instance) const // {{
 double LogisticRegressionModel::LogDistance(double guess, double truth) // {{{
 { return -truth*log(guess)-(1-truth)*log(1-guess);
 } // }}}
-double LogisticRegressionModel::Cost(const GuidedData<double,double> &instances, double lambda) // {{{
+double LogisticRegressionModel::Cost(const vector<vector<double> > &instances, const vector<double> &truths, double lambda) // {{{
 { double cost=0;
-  for (size_t i=0; i<instances.Height(); ++i)
-    cost += LogDistance(Eval(instances,i),instances.GetResult(i));
-  cost = cost/(double)instances.Height();
+  for (size_t i=0; i<instances.size(); ++i)
+    cost += LogDistance(Eval(instances,i),truths[i]);
+  cost = cost/(double)instances.size();
 
   // Add Regularization
   for (size_t p=1; p<CountParameters(); ++p)
-  { cost +=lambda*pow(GetParameter(p),2.0)/(2.0*instances.Height());
+  { cost +=lambda*pow(GetParameter(p),2.0)/(2.0*instances.size());
   }
   return cost;
 } // }}}
-void LogisticRegressionModel::AddDelta(const Data<double> &inputs, size_t pos, std::vector<double> &deltasum, const double &diff) // {{{
-{ for (size_t p=0; p<inputs.Width(); ++p)
-  { //double a=inputs.GetValue(pos,p);
-    deltasum[p]+=diff*inputs.GetValue(pos,p);
+void LogisticRegressionModel::AddDelta(const vector<vector<double> > &inputs, size_t pos, std::vector<double> &deltasum, const double &diff) // {{{
+{ for (size_t p=0; p<inputs[pos].size(); ++p)
+  { deltasum[p]+=diff*inputs[pos][p];
   }
 } // }}}
-vector<double> LogisticRegressionModel::Delta(const GuidedData<double,double> &instances, double lambda) // {{{
+vector<double> LogisticRegressionModel::Delta(const vector<vector<double> > &instances, const vector<double> &truths, double lambda) // {{{
 { vector<double> delta=vector<double>(CountParameters(),0.0);
-  for (size_t instance=0; instance<instances.Height(); ++instance)
+  for (size_t instance=0; instance<instances.size(); ++instance)
   { double guess=Eval(instances,instance);
-    AddDelta(instances,instance,delta,guess-instances.GetResult(instance));
+    AddDelta(instances,instance,delta,guess-truths[instance]);
     //for (size_t p=0; p<CountParameters(); ++p)
     //  delta[p]+=(guess-instances.GetResult(instance))*instances.GetValue(instance,p);
   }
   for (size_t p=0; p<CountParameters(); ++p)
-    delta[p]=delta[p]/(double)instances.Height();
+    delta[p]=delta[p]/(double)instances.size();
   // Add regularization
   for (size_t p=1; p<CountParameters(); ++p)
-  { delta[p] +=lambda*GetParameter(p)/instances.Height();
+  { delta[p] +=lambda*GetParameter(p)/instances.size();
   }
  
   return delta;

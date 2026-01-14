@@ -254,7 +254,10 @@ void SumDelta(SumDeltaArg *arg) // {{{
       throw string("RecurrentNetwork::SumDelta input width does not match");
 
     int recurrences=instance.size()/arg->net->InputSize();
-    if (truth.size()!=(arg->net->Nodes().back().size()-arg->net->MemorySize())*recurrences)
+    size_t outputSize=arg->net->Nodes().back().size()-arg->net->MemorySize();
+    size_t netDepth=arg->net->Nodes().size();
+
+    if (truth.size()!=outputSize*recurrences)
       throw string("RecurrentNetwork::SumDelta truth width does not match");
     
     // Calculate signals
@@ -297,8 +300,6 @@ void SumDelta(SumDeltaArg *arg) // {{{
     while (delta.size()<signals.size())
       delta.push_back(vector<double>(signals[delta.size()].size(),0.0));
     
-    size_t outputSize=arg->truths[pos].size()/recurrences;
-    size_t netDepth=arg->net->Nodes().size();
     // Backpropagate delta
     for (int layer=delta.size()-1; layer>=0; --layer)
     { int netRecurrence = layer/(netDepth+1);
@@ -392,10 +393,9 @@ std::vector<double> RecurrentNetwork::Delta(const vector<vector<double>> &instan
 
   return flat_delta;
 } // }}}
-/*
 void RecurrentNetwork::SaveParameters(ostream &dest, bool saveSize) const // {{{
 { dest.precision(std::numeric_limits<double>::max_digits10 - 1);
-  dest << myInputSize << "->[";
+  dest << myInputSize << ":" << myMemorySize << "->[";
   for (size_t layer=0; layer<myNodes.size(); ++layer)
   { if (layer>0)
       dest << ",";
@@ -444,6 +444,9 @@ void RecurrentNetwork::LoadParameters(istream &src, bool loadSize) // {{{
   myNodes.clear();
 
   myInputSize=ReadInt(src);
+  if (ReadString(src,1)!=":")
+    throw string("RecurrentNetwork::LoadParameters exprected '->['");
+  myMemorySize=ReadInt(src);
   if (ReadString(src,3)!="->[")
     throw string("RecurrentNetwork::LoadParameters exprected '->['");
   while (!src.eof())
@@ -501,17 +504,17 @@ void RecurrentNetwork::LoadParameters(istream &src, bool loadSize) // {{{
   cerr << "RecurrentNetwork::LoadParameters::Unexpected end of model, partial model loaded" << endl;
 } // }}}
 
-RecurrentNetwork *RecurrentNetwork::Parse(const std::string &networkstr) // {{{
+RecurrentNetwork *RecurrentNetwork::Parse(const std::string &networkstr, size_t memory_size) // {{{
 { dpl::SlrParser parser("network");
   parser.Load(std::string((char*)bnf_network_bnf,bnf_network_bnf_len));
   dpl::parsetree *tree=parser.Parse(networkstr);
-  RecurrentNetwork *result=ParseRecurrentNetwork(*tree);
+  RecurrentNetwork *result=ParseRecurrentNetwork(*tree, memory_size);
   delete tree;
   return result;
 } // }}}
-RecurrentNetwork *RecurrentNetwork::ParseRecurrentNetwork(const dpl::parsetree &tree) // {{{
+RecurrentNetwork *RecurrentNetwork::ParseRecurrentNetwork(const dpl::parsetree &tree, size_t memory_size) // {{{
 { if (tree.TypeCase()=="network.net")
-  { RecurrentNetwork *result=new RecurrentNetwork(std::stoi(tree.Child("features")->Token().Content()));
+  { RecurrentNetwork *result=new RecurrentNetwork(std::stoi(tree.Child("features")->Token().Content()), memory_size);
     ParseLayers(*result,*tree.Child("layers"));
     return result;
   }
@@ -571,7 +574,7 @@ void RecurrentNetwork::ParseNode(RecurrentNetwork &dest, size_t layer, const dpl
 { if (tree.TypeCase()=="node.unam")
   { vector<size_t> node_sources;
     vector<double> node_weights;
-    size_t node_inputs=layer>0?dest.LayerSize(layer-1)+1:dest.InputSize();
+    size_t node_inputs=layer>0?dest.LayerSize(layer-1)+1:(dest.InputSize()+dest.MemorySize());
     ParseInputs(node_inputs,node_sources,node_weights,*tree.Child("inputs"));
     size_t node_id=dest.AddNode(layer,node_sources);
     for (size_t i=0; i<node_weights.size(); ++i)
@@ -582,7 +585,7 @@ void RecurrentNetwork::ParseNode(RecurrentNetwork &dest, size_t layer, const dpl
   { // Ignore names for now
     vector<size_t> node_sources;
     vector<double> node_weights;
-    size_t node_inputs=layer>0?dest.LayerSize(layer-1)+1:dest.InputSize();
+    size_t node_inputs=layer>0?dest.LayerSize(layer-1)+1:(dest.InputSize()+dest.MemorySize());
     ParseInputs(node_inputs,node_sources,node_weights,*tree.Child("inputs"));
     size_t node_id=dest.AddNode(layer,node_sources);
     for (size_t i=0; i<node_weights.size(); ++i)
@@ -623,4 +626,3 @@ void RecurrentNetwork::ParseInputs(size_t inputs, vector<size_t> &sources, vecto
   else
     throw string("RecurrentNetwork::ParseInputs: Unknown case ")+tree.TypeCase();
 } // }}}
-*/
