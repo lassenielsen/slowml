@@ -1,7 +1,5 @@
 #pragma once
 #include <slowml/network.hpp>
-#include <slowml/vectordata.hpp>
-#include <slowml/guidedvectordata.hpp>
 #include <vector>
 #include <sstream>
 #include <iostream>
@@ -14,7 +12,7 @@ struct MakeRLDataArg // {{{
 { MakeRLDataArg(const RLGame &game, const std::vector<Network*> &models, size_t sims, size_t limit, double randomness, std::mutex &m, vector<set<vector<double>>> &states, bool multiple_occurences);
   const RLGame &myGame;
   const std::vector<Network*> &myModels;
-  std::vector<std::vector<double> > myInputs;
+  std::vector<std::vector<std::vector<double> > > myInputs;
   std::vector<std::vector<std::vector<double> > > myResults;
   size_t mySims;
   size_t myLimit;
@@ -78,16 +76,16 @@ class RLGame // {{{
 
     //! Train networks to play game using Reinforcement Learning
     void TrainRLGame(vector<Network*> &models, size_t sims, size_t reps, double ainv, double lambda, size_t limit=100, bool multiple_occurences=false, double randomness=0.0, bool debug=false) const // {{{
-    { vector<vector<double> > inputs;
-      vector<vector<vector<double> > > results;
+    { vector<vector<vector<double>>> inputs;
+      vector<vector<vector<double>>> results;
 
       std::mutex mtx;
       vector<set<vector<double>> > statehashes;
 
       for (size_t player=0; player<Players(); ++player)
-      {  inputs.push_back(vector<double>());
-         results.push_back(vector<vector<double> >());
-         statehashes.push_back(set<vector<double> >());
+      {  inputs.push_back(vector<vector<double>>());
+         results.push_back(vector<vector<double>>());
+         statehashes.push_back(set<vector<double>>());
       }
 
       // Start threads to generate trainingdata    
@@ -113,11 +111,9 @@ class RLGame // {{{
       // Train models on trainingdata
       for (size_t player=0; player<Players(); ++player)
       { double alpha=ainv;
-        VectorData<double> data(inputs[player],models[player]->InputSize(),inputs[player].size()/models[player]->InputSize());
-        GuidedVectorData<double,vector<double> > trainingdata(data,results[player]);
-        double precost=models[player]->Cost(trainingdata,lambda);
-        models[player]->FitParameters(trainingdata,alpha,lambda,reps,200.0,false);
-        double postcost=models[player]->Cost(trainingdata,lambda);
+        double precost=models[player]->Cost(inputs[player],results[player],lambda);
+        models[player]->FitParameters(inputs[player],results[player],alpha,lambda,reps,200.0,false);
+        double postcost=models[player]->Cost(inputs[player],results[player],lambda);
         if (debug)
           cout << "TrainRLGame: Player " << player << " on " << results[player].size() << " truths from cost " << precost << " to " << postcost << endl;
       }
@@ -135,8 +131,8 @@ MakeRLDataArg::MakeRLDataArg(const RLGame &game, const std::vector<Network*> &mo
 , myStates(states)
 , myMultipleOccurences(multiple_occurences)
 { for (size_t player=0; player<myGame.Players(); ++player)
-  {  myInputs.push_back(vector<double>());
-     myResults.push_back(vector<vector<double> >());
+  {  myInputs.push_back(vector<vector<double>>());
+     myResults.push_back(vector<vector<double>>());
   }
 } // }}}
 
@@ -196,7 +192,7 @@ void MakeRLData(MakeRLDataArg *arg) // {{{
       }
       if (best_score>worst_score) // Is training meaningful?
       { 
-        arg->myInputs[player].insert(arg->myInputs[player].end(),input.begin(),input.end());
+        arg->myInputs[player].push_back(input);
         arg->myResults[player].push_back(right_choices);
       }
       state->Step(right_choices);

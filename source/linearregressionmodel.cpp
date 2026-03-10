@@ -58,6 +58,12 @@ void LinearRegressionModel::AddDelta(const vector<vector<double> > &inputs, size
   }
 } // }}}
 
+void LinearRegressionModel::AddDeltaMapped(const std::vector<double> &inputs, std::vector<double> &deltasum, const double &diff, const std::vector<size_t> &map_map) // {{{
+{ for (size_t p=0; p<map_map.size(); ++p)
+  { deltasum[p]+=diff*inputs[map_map[p]];
+  }
+} // }}}
+
 vector<double> LinearRegressionModel::Delta(const vector<vector<double> > &instances, const vector<double> &truths, double lambda) // {{{
 { vector<double> delta=vector<double>(instances.size(),0.0);
   for (size_t instance=0; instance<instances.size(); ++instance)

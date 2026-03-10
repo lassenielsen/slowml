@@ -63,6 +63,11 @@ void LogisticRegressionModel::AddDelta(const vector<vector<double> > &inputs, si
   { deltasum[p]+=diff*inputs[pos][p];
   }
 } // }}}
+void LogisticRegressionModel::AddDeltaMapped(const vector<double> &inputs, std::vector<double> &deltasum, const double &diff, const vector<size_t> &map_map) // {{{
+{ for (size_t p=0; p<map_map.size(); ++p)
+  { deltasum[p]+=diff*inputs[map_map[p]];
+  }
+} // }}}
 vector<double> LogisticRegressionModel::Delta(const vector<vector<double> > &instances, const vector<double> &truths, double lambda) // {{{
 { vector<double> delta=vector<double>(CountParameters(),0.0);
   for (size_t instance=0; instance<instances.size(); ++instance)

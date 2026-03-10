@@ -30,7 +30,6 @@ args = -std=c++11 -fPIC $(opt) -I./include/
 library_objects = \
   objects/linearregressionmodel.o \
   objects/logisticregressionmodel.o \
-  objects/vectormap.o \
   objects/onevsall.o \
   objects/network.o
 

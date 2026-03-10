@@ -11,6 +11,7 @@ class LogisticRegressionModel : public ShallowModel<double> // {{{
     double Eval(const std::vector<double> &instance) const;
     double LogDistance(double guess, double truth);
     double Cost(const std::vector<std::vector<double>> &instances, const std::vector<double> &truths, double lambda=1.0);
-    void AddDelta(const vector<vector<double> > &inputs, size_t pos, std::vector<double> &deltasum, const double &diff);
+    void AddDelta(const std::vector<std::vector<double> > &inputs, size_t pos, std::vector<double> &deltasum, const double &diff);
+    void AddDeltaMapped(const std::vector<double> &inputs, std::vector<double> &deltasum, const double &diff, const std::vector<size_t> &map_map);
     std::vector<double> Delta(const std::vector<std::vector<double>> &instances, const std::vector<double> &truths, double lambda=1.0);
 }; // }}}

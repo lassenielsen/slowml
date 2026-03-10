@@ -1,9 +1,6 @@
 #pragma once
 #include <slowml/label.hpp>
 #include <slowml/feature.hpp>
-#include <slowml/data.hpp>
-#include <slowml/guideddata.hpp>
-#include <slowml/guideddataclasswrapper.hpp>
 #include <slowml/logisticregressionmodel.hpp>
 #include <istream>
 #include <ostream>

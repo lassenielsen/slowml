@@ -9,6 +9,10 @@
 
 using namespace std;
 
+inline double &mapidx(vector<double> &data, const vector<size_t> &idxmap, size_t i) // {{{
+{ return data[idxmap[i]];
+} // }}}
+
 vector<double> mapstate(const vector<double> &state, const vector<size_t> & idxs) // {{{
 { vector<double> res;
   for (size_t i=0; i<idxs.size(); ++i)
@@ -303,10 +307,10 @@ void SumDelta(SumDeltaArg *arg) // {{{
     for (size_t layer=0; layer<arg->net->Nodes().size(); ++layer)
     { for (size_t node=0; node<arg->net->Nodes()[layer].size(); ++node)
       { Network::Node &n(arg->net->Nodes()[layer][node]);
-        WrapperData<double> signals_data(signals[layer].size(),1,n.first,&signals[layer]); //.SetData(&(signals[layer]),signals[layer].size(),1);
+        //WrapperData<double> signals_data(signals[layer].size(),1,n.first,&signals[layer]); //.SetData(&(signals[layer]),signals[layer].size(),1);
         vector<double> d(n.second->CountParameters(),0.0);
         // Calculate delta increment to d
-        n.second->AddDelta(signals_data,0,d,delta[layer][node+1]);
+        n.second->AddDeltaMapped(signals[layer],d,delta[layer][node+1],n.first);
         // Update delta from d
         for (size_t i=0; i<d.size(); ++i)
           arg->result[dest++]+=d[i];
@@ -316,7 +320,7 @@ void SumDelta(SumDeltaArg *arg) // {{{
   
   return;
 } // }}}
-std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &instances, double lambda) // {{{
+std::vector<double> Network::Delta(const vector<vector<double> > &instances, const vector<vector<double> > &truths, double lambda) // {{{
 { vector<double> flat_delta(CountParameters(),0.0);
 
   size_t cores=std::thread::hardware_concurrency();
@@ -325,7 +329,7 @@ std::vector<double> Network::Delta(const GuidedData<double,vector<double> > &ins
   vector<thread> threads;
   // Start threads
   for (size_t core=0; core<cores; ++core)
-  { SumDeltaArg *arg=new SumDeltaArg(this,instances,instances.size()*core/cores,instances.size()*(core+1)/cores);
+  { SumDeltaArg *arg=new SumDeltaArg(this,instances,truths,instances.size()*core/cores,instances.size()*(core+1)/cores);
     args.push_back(arg);
     threads.push_back(thread(SumDelta,arg));
   }

@@ -15,7 +15,8 @@ template<class Result> class ShallowModel : public Model<Result> // {{{
     const std::vector<double> &Parameters() const { return myParameters; }
     std::vector<double> &Parameters() { return myParameters; }
 
-    virtual void AddDelta(const vector<vector<double> > &inputs, size_t pos, std::vector<double> &deltasum, const Result &diff)=0;
+    virtual void AddDelta(const std::vector<std::vector<double> > &inputs, size_t pos, std::vector<double> &deltasum, const Result &diff)=0;
+    virtual void AddDeltaMapped(const std::vector<double> &inputs, std::vector<double> &deltasum, const Result &diff, const std::vector<size_t> &map_map)=0;
 
     virtual void SaveParameters(std::ostream &dest, bool saveSize=true) const // {{{
     { size_t count=CountParameters();
