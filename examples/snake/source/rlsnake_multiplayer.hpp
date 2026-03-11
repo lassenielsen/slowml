@@ -3,6 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <cmath>
+#include <iomanip>
 double sqr(double a) { return a*a; }
 class RLSnake : public RLGame // {{{
 { public:
@@ -17,11 +18,29 @@ class RLSnake : public RLGame // {{{
       int myFov;
     };
 
-    RLSnake(size_t w, size_t h, const vector<snake> &players) // {{{
+    RLSnake(size_t w, size_t h, const std::string &mapfile, const vector<snake> &players) // {{{
     : myWidth(w)
     , myHeight(h)
     , myPlayers(players)
-    { Init();
+    { if (mapfile.size()>0)
+      { std::ifstream fin(mapfile);
+        if (fin.is_open())
+        { int y=0;
+          std::string line;
+          while(std::getline(fin,line))
+          { if (myWidth<=line.size())
+              myWidth=line.size();
+            for (int x=0; x<line.size(); ++x)
+            { if (line[x]=='#')
+                myMap[{x,y}]='#';
+            }
+            ++y;
+          }
+          if (y>myHeight)
+            myHeight=y;
+        }
+      }
+      Init();
     } // }}}
     virtual ~RLSnake() // {{{
     {
@@ -221,7 +240,7 @@ class RLSnake : public RLGame // {{{
       { myPlayers[myTurn].myPoints+=1.0d;
         myPlayers[myTurn].myPoints+=((double)myPlayers[myTurn].myBonus)/(myWidth*myHeight*10);
         myPlayers[myTurn].myBonus=myWidth*myHeight;
-        ++myPlayers[myTurn].myLength;
+        myPlayers[myTurn].myLength+=10;
         for (size_t i=0; i==0 || (i<100 && (Dangerous(myFruitX,myFruitY))); ++i)
         { myFruitX=1+rand()%(myWidth-2);
           myFruitY=1+rand()%(myHeight-2);
@@ -243,6 +262,10 @@ class RLSnake : public RLGame // {{{
     bool Dangerous(int x, int y) const // {{{
     { if (x<0 || y<0 || x>=myWidth || y>=myHeight)
         return true;
+
+      if (myMap.find({x,y})!=myMap.end())
+        return true;
+
       for (size_t player=0; player<myPlayers.size(); ++player)
       { if (myPlayers[player].myDead)
           continue;
@@ -324,8 +347,8 @@ class RLSnake : public RLGame // {{{
             result << "$";
           else if (Dangerous(x,y))
             result << "#";
-          else if (Visible(x,y))
-            result << ".";
+          //else if (Visible(x,y))
+          //  result << ".";
           else
             result << " ";
         }
@@ -344,4 +367,5 @@ class RLSnake : public RLGame // {{{
     size_t myTurn;
     vector<snake> myPlayers;
     int myAlive;
+    std::map<std::pair<int,int>,char> myMap;
 }; // }}}
