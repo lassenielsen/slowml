@@ -78,32 +78,25 @@ void Input(vector<Player*> &players) // {{{
   }
 } // }}}
 
-void TestSnake(vector<Network*> &models, vector<Player*> &players, vector<RLSnake::snake> &snakes, size_t width, size_t height, double randomness) // {{{
+void TestSnake(vector<Network*> &models, vector<Player*> &players, vector<RLSnake::snake> &snakes, size_t width, size_t height, string mapfile, double randomness, size_t endtime) // {{{
 { // Create game
   srand(time(NULL)); // Fix (random) map
-  RLSnake game(width,height,snakes);
-  // Create player networks
-  vector<vector<double> > states;
-  for (size_t i=0; i<snakes.size(); ++i)
-    states.push_back(game.State());
+  RLSnake game(width,height,mapfile,snakes);
 
+  size_t lturn=game.Turn();
   size_t step=0;
-  for (step=0; true; ++step)
+  for (step=0; step<endtime; ++step)
   { //clear();
-    states[game.Turn()]=game.State();
-    stringstream ss;
-    for (size_t i=0; i<players.size(); ++i)
-    { ss << "Player " << i << ": ";
-      for (size_t j=0; j<states[i].size(); ++j)
-      { ss.precision(2);
-        ss << states[i][j] << ", ";
-      }
-      ss << endl;
+    if (game.Turn()<=lturn)
+    { stringstream ss;
+      ss << "Step: " << step << "\n\r"
+         << game.GameString();
+      mvaddstr(0,0,ss.str().c_str());
+      wrefresh(stdscr);
+      if (game.LiveSnakes()>0)
+        this_thread::sleep_for(chrono::milliseconds(50));
     }
-    ss << "Step: " << step << "\n\r"
-       << game.GameString();
-    mvaddstr(0,0,ss.str().c_str());
-    wrefresh(stdscr);
+    lturn=game.Turn();
     // Perform step
     if (game.Done())
       break;
@@ -112,8 +105,6 @@ void TestSnake(vector<Network*> &models, vector<Player*> &players, vector<RLSnak
     else
       game.Step(players[game.Turn()-models.size()]->Keys());
 
-    if (game.LiveSnakes()>0)
-      this_thread::sleep_for(chrono::milliseconds(150/(game.LiveSnakes()+1)));
     Input(players);
   }
 
@@ -138,12 +129,15 @@ int main(int argc, char **argv) // {{{
   size_t opt_height;
   getmaxyx(stdscr,opt_height,opt_width);
   opt_width=opt_width-3;
-  opt_height=opt_height-10;
+  opt_height=opt_height-5;
+  string opt_mapfile="";
+
+  size_t opt_endtime=(size_t)-1;
 
   try
   { if (argc<2)
     { endwin();
-      cout << "Usage: " << argv[0] << " [-m <model path> <fov>]* [-p <keys>]* [-rnd|--randomness <double=0.01>] [-w|--width <int="<<opt_width<<">] [-h|--height <int="<<opt_height<<">]" << endl;
+      cout << "Usage: " << argv[0] << " [--map <path to map>] [-m <model path> <fov>]* [-p <keys>]* [-s|--steps <max number of steps>] [-rnd|--randomness <double=0.01>] [-w|--width <int="<<opt_width<<">] [-h|--height <int="<<opt_height<<">]" << endl;
       return 0;
     }
 
@@ -151,9 +145,8 @@ int main(int argc, char **argv) // {{{
     vector<Player*> players;
     vector<RLSnake::snake> snakes;
 
-    players.push_back(new Player('w','s','a','d'));
     for (size_t i=1; i<argc; ++i)
-    { if (i+1<argc && string("-m")==argv[i])
+    { if (i+2<argc && string("-m")==argv[i])
       { ifstream fin(argv[++i]);
         Network *model=new Network(1);
         model->LoadParameters(fin);
@@ -164,18 +157,28 @@ int main(int argc, char **argv) // {{{
         ss << argv[++i];
         ss >> s.myFov;
         snakes.push_back(s);
+        --opt_height;
       }
       else if (i+1<argc && string("-p")==argv[i])
       { ++i;
         RLSnake::snake s;
         s.myFov=0;
         snakes.push_back(s);
-        cerr << "Player snakes not yet supported" << endl;
+        players.push_back(new Player(argv[i][0],argv[i][1],argv[i][2],argv[i][3]));
+        --opt_height;
+      }
+      else if (i+1<argc && string("--map")==argv[i])
+      { opt_mapfile=argv[++i];
       }
       else if (i+1<argc && (string("-rnd")==argv[i] || string("--randomness")==argv[i]))
       { stringstream ss;
         ss << argv[++i];
         ss >> opt_randomness;
+      }
+      else if (i+1<argc && (string("-s")==argv[i] || string("--steps")==argv[i]))
+      { stringstream ss;
+        ss << argv[++i];
+        ss >> opt_endtime;
       }
       else if (i+1<argc && (string("-w")==argv[i] || string("--width")==argv[i]))
       { stringstream ss;
@@ -190,7 +193,7 @@ int main(int argc, char **argv) // {{{
       else
         cerr << "Unknown argument " << argv[i];
     }
-    TestSnake(models,players,snakes,opt_width,opt_height,opt_randomness);
+    TestSnake(models,players,snakes,opt_width,opt_height,opt_mapfile,opt_randomness,opt_endtime);
     while (!models.empty())
     { delete models.back();
       models.pop_back();
